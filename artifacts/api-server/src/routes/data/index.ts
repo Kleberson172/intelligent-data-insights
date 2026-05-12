@@ -19,11 +19,22 @@ router.post("/data/upload", upload.single("file"), async (req: Request, res: Res
 
   try {
     const content = req.file.buffer.toString("utf-8");
+
+    const sniff = content.slice(0, 2000);
+    const semicolons = (sniff.match(/;/g) ?? []).length;
+    const commas = (sniff.match(/,/g) ?? []).length;
+    const tabs = (sniff.match(/\t/g) ?? []).length;
+    const delimiter = tabs > semicolons && tabs > commas ? "\t"
+      : semicolons > commas ? ";" : ",";
+
     const records = parse(content, {
       columns: true,
       skip_empty_lines: true,
       trim: true,
       bom: true,
+      delimiter,
+      relax_column_count: true,
+      relax_quotes: true,
     }) as Record<string, string>[];
 
     if (records.length === 0) {

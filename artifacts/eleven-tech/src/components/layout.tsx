@@ -8,12 +8,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/products", label: "Products", icon: Package },
-  { href: "/orders", label: "Orders", icon: ShoppingCart },
-  { href: "/customers", label: "Customers", icon: Users },
-  { href: "/analytics", label: "Analytics", icon: BarChart2 },
+  { href: "/products", label: "Produtos", icon: Package },
+  { href: "/orders", label: "Encomendas", icon: ShoppingCart },
+  { href: "/customers", label: "Clientes", icon: Users },
+  { href: "/analytics", label: "Análise", icon: BarChart2 },
   { href: "/marketing", label: "Marketing", icon: Megaphone },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/settings", label: "Definições", icon: Settings },
 ];
 
 export function AppLayout({ children, title = "Dashboard", showSearch = true }: {
@@ -39,9 +39,7 @@ export function AppLayout({ children, title = "Dashboard", showSearch = true }: 
         {/* Logo */}
         <div className="px-5 pt-7 pb-6">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-indigo-500 flex items-center justify-center font-black text-white text-sm shadow-[0_0_15px_rgba(56,189,248,0.5)]">
-              11
-            </div>
+            <img src="/logo-eleven.png" alt="ELEVEN" className="w-9 h-9 object-contain drop-shadow-[0_0_8px_rgba(56,189,248,0.6)]" />
             <div>
               <div className="font-bold text-white text-sm leading-none tracking-wide">ELEVEN</div>
               <div className="text-[9px] text-cyan-400 tracking-[0.25em] uppercase mt-0.5">Technology</div>

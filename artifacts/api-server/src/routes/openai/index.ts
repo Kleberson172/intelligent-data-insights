@@ -14,17 +14,20 @@ import { getCsvData } from "../../lib/csv-store";
 
 const router: IRouter = Router();
 
-const BASE_SYSTEM_PROMPT = `Você é o Assistente de IA da ELEVEN Technology, especializado em análise de dados de vendas para Angola.
+const BASE_SYSTEM_PROMPT = `Você é o Agente de IA da ELEVEN Technology — uma plataforma angolana de inteligência de dados. O seu papel é responder dúvidas do utilizador, analisar dados de negócio e fornecer insights estratégicos.
 
 Contexto padrão (dataset vendas_angola.csv):
 - Período: Janeiro 2023 a Dezembro 2024
 - Províncias: Luanda, Benguela, Huambo, Namibe, Cabinda, Malanje, Uíge, Zaire
-- Produtos: Eletrônicos, Alimentação, Vestuário, Construção, Farmácia, Combustíveis
+- Produtos: Eletrónicos, Alimentação, Vestuário, Construção, Farmácia, Combustíveis
 - Métricas: Vendas (AOA), Despesas, Lucro, Unidades Vendidas, Número de Clientes
 
-Responda SEMPRE em português de Angola. Seja específico, use números reais e forneça insights acionáveis.
-Quando o utilizador perguntar sobre dados, forneça análises detalhadas com comparações e tendências.
-Use formatação com listas e destaque os números importantes.`;
+REGRAS OBRIGATÓRIAS:
+1. Responda SEMPRE em português europeu/angolano — NUNCA em inglês.
+2. Seja directo, específico e use números concretos.
+3. Formate as respostas com listas, negrito e secções claras.
+4. Se o utilizador fizer uma pergunta geral (não sobre dados), responda de forma útil e em português.
+5. Cumprimente o utilizador de forma amigável quando iniciar a conversa.`;
 
 function buildSystemPrompt(): string {
   const csv = getCsvData();
@@ -177,7 +180,7 @@ router.post("/openai/conversations/:id/messages", async (req, res): Promise<void
 
   try {
     const stream = await openai.chat.completions.create({
-      model: "gpt-5.4",
+      model: "gpt-4o",
       max_completion_tokens: 8192,
       messages: chatMessages,
       stream: true,

@@ -52,9 +52,7 @@ export default function Login() {
         <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl" />
 
         <div className="relative z-10 flex items-center gap-3">
-          <div className="w-10 h-10 bg-cyan-500 rounded-xl flex items-center justify-center font-black text-[#0a0e14] text-lg">
-            11
-          </div>
+          <img src="/logo-eleven.png" alt="ELEVEN" className="w-12 h-12 object-contain drop-shadow-[0_0_12px_rgba(56,189,248,0.7)]" />
           <div>
             <div className="font-bold text-white text-lg leading-none">ELEVEN</div>
             <div className="text-[10px] text-cyan-400 tracking-[0.3em] uppercase">Technology</div>
@@ -115,9 +113,7 @@ export default function Login() {
         >
           {/* Mobile logo */}
           <div className="flex lg:hidden items-center gap-3 mb-8 justify-center">
-            <div className="w-10 h-10 bg-cyan-500 rounded-xl flex items-center justify-center font-black text-[#0a0e14] text-lg">
-              11
-            </div>
+            <img src="/logo-eleven.png" alt="ELEVEN" className="w-12 h-12 object-contain drop-shadow-[0_0_12px_rgba(56,189,248,0.7)]" />
             <div>
               <div className="font-bold text-white text-lg leading-none">ELEVEN</div>
               <div className="text-[10px] text-cyan-400 tracking-[0.3em] uppercase">Technology</div>

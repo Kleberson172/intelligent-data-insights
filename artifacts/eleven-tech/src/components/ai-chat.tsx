@@ -187,7 +187,7 @@ export function AIChatZone({ onPulse, onMessagesChange }: { onPulse?: () => void
             <Bot className="text-primary w-5 h-5" />
             <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
           </div>
-          <h2 className="text-sm font-bold text-foreground">Assistente de IA — ELEVEN</h2>
+          <h2 className="text-sm font-bold text-foreground">Agente de IA — ELEVEN</h2>
         </div>
         <div className="flex items-center gap-2">
           {csvStatus.loaded ? (
@@ -232,8 +232,8 @@ export function AIChatZone({ onPulse, onMessagesChange }: { onPulse?: () => void
             >
               <Bot className="w-10 h-10 text-primary/30" />
               <div>
-                <p className="font-medium text-foreground/70 mb-1">Olá! Sou o assistente ELEVEN.</p>
-                <p className="text-xs">Pergunte sobre tendências, anomalias ou previsões. Pode também arrastar um ficheiro CSV aqui.</p>
+                <p className="font-medium text-foreground/70 mb-1">Olá! Sou o Agente de IA da ELEVEN.</p>
+                <p className="text-xs">Estou aqui para responder às suas dúvidas e analisar os seus dados. Pode também arrastar um ficheiro CSV aqui.</p>
               </div>
               <div className="flex flex-wrap gap-2 justify-center mt-2">
                 {["Qual foi o melhor mês de vendas?", "Quais províncias cresceram mais?", "Analisa as anomalias"].map(q => (
