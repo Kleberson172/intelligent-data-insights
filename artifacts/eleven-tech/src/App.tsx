@@ -1,4 +1,4 @@
-import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
+import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,10 +7,12 @@ import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
 
 import Dashboard from "@/pages/dashboard";
-import Predicoes from "@/pages/predicoes";
-import Anomalias from "@/pages/anomalias";
-import Integracoes from "@/pages/integracoes";
-import Admin from "@/pages/admin";
+import Products from "@/pages/products";
+import Orders from "@/pages/orders";
+import Customers from "@/pages/customers";
+import Analytics from "@/pages/analytics";
+import Marketing from "@/pages/marketing";
+import SettingsPage from "@/pages/settings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,23 +23,17 @@ const queryClient = new QueryClient({
   },
 });
 
-function AdminRoute({ component: Component }: { component: React.ComponentType }) {
-  const { isAdmin } = useAuth();
-  if (!isAdmin) return <Redirect to="/" />;
-  return <Component />;
-}
-
 function Router() {
   const { isLoading, isAuthenticated } = useAuth();
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0a0e14] flex items-center justify-center">
+      <div className="min-h-screen app-bg flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 bg-cyan-500 rounded-xl flex items-center justify-center font-black text-[#0a0e14] text-lg animate-pulse">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-400 to-indigo-500 flex items-center justify-center font-black text-white text-lg animate-pulse shadow-[0_0_30px_rgba(56,189,248,0.4)]">
             11
           </div>
-          <div className="text-gray-400 text-sm">A carregar...</div>
+          <div className="text-gray-400 text-sm">Loading...</div>
         </div>
       </div>
     );
@@ -50,14 +46,12 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
-      <Route path="/predicoes" component={Predicoes} />
-      <Route path="/anomalias" component={Anomalias} />
-      <Route path="/integracoes">
-        <AdminRoute component={Integracoes} />
-      </Route>
-      <Route path="/admin">
-        <AdminRoute component={Admin} />
-      </Route>
+      <Route path="/products" component={Products} />
+      <Route path="/orders" component={Orders} />
+      <Route path="/customers" component={Customers} />
+      <Route path="/analytics" component={Analytics} />
+      <Route path="/marketing" component={Marketing} />
+      <Route path="/settings" component={SettingsPage} />
       <Route component={NotFound} />
     </Switch>
   );
