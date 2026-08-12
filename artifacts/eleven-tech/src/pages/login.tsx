@@ -1,45 +1,26 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useAuth } from "@workspace/replit-auth-web";
 import { motion } from "framer-motion";
-import { BarChart3, Zap, Shield, Globe, ChevronRight, Loader2 } from "lucide-react";
-
-const DEMO_ACCOUNTS = [
-  {
-    email: "demo@eleventech.ao",
-    password: "Demo2026!",
-    name: "Carlos Mendes",
-    role: "Analista",
-    initials: "CM",
-    gradient: "from-cyan-500 to-cyan-600",
-    badge: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30",
-    desc: "Acesso a Dashboard, Análise e Anomalias",
-  },
-  {
-    email: "admin@eleventech.ao",
-    password: "Admin2026!",
-    name: "Ana Ferreira",
-    role: "Administrador",
-    initials: "AF",
-    gradient: "from-indigo-500 to-indigo-600",
-    badge: "bg-indigo-500/15 text-indigo-400 border-indigo-500/30",
-    desc: "Acesso total incluindo Integrações e Gestão",
-  },
-];
+import { BarChart3, Zap, Shield, Globe, Loader2, Mail, Lock, Eye, EyeOff } from "lucide-react";
 
 export default function Login() {
   const { loginWithCredentials } = useAuth();
-  const [loadingEmail, setLoadingEmail] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleDemoLogin(account: (typeof DEMO_ACCOUNTS)[number]) {
-    if (loadingEmail) return;
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (loading) return;
     setError(null);
-    setLoadingEmail(account.email);
+    setLoading(true);
     try {
-      await loginWithCredentials(account.email, account.password);
+      await loginWithCredentials(email, password);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao autenticar.");
-      setLoadingEmail(null);
+      setLoading(false);
     }
   }
 
@@ -109,7 +90,7 @@ export default function Login() {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
-          className="w-full max-w-md space-y-5"
+          className="w-full max-w-sm space-y-6"
         >
           {/* Mobile logo */}
           <div className="flex lg:hidden items-center gap-3 mb-8 justify-center">
@@ -124,70 +105,75 @@ export default function Login() {
           <div className="text-center">
             <h2 className="text-2xl font-bold text-white">Acesso à Plataforma</h2>
             <p className="text-gray-400 mt-1 text-sm">
-              Selecione uma conta de demonstração para entrar
+              Entre com o seu email e palavra-passe
             </p>
           </div>
 
-          {/* Demo account cards — one click login */}
-          <div className="space-y-3">
-            {DEMO_ACCOUNTS.map((account) => {
-              const isLoading = loadingEmail === account.email;
-              return (
-                <motion.button
-                  key={account.email}
-                  onClick={() => handleDemoLogin(account)}
-                  disabled={!!loadingEmail}
-                  whileHover={{ scale: loadingEmail ? 1 : 1.01 }}
-                  whileTap={{ scale: loadingEmail ? 1 : 0.99 }}
-                  className="w-full text-left bg-[#111827] border border-white/10 hover:border-white/25 rounded-2xl p-5 transition-all duration-200 group disabled:opacity-60 disabled:cursor-wait shadow-xl"
-                >
-                  <div className="flex items-center gap-4">
-                    {/* Avatar */}
-                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${account.gradient} flex items-center justify-center text-white font-bold text-base shrink-0 shadow-lg`}>
-                      {isLoading ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : (
-                        account.initials
-                      )}
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-base font-semibold text-white">{account.name}</span>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${account.badge}`}>
-                          {account.role}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-0.5">{account.desc}</p>
-                    </div>
-
-                    {/* Arrow */}
-                    <div className="shrink-0 text-gray-600 group-hover:text-gray-300 transition-colors">
-                      {isLoading ? (
-                        <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
-                      ) : (
-                        <ChevronRight className="w-5 h-5" />
-                      )}
-                    </div>
-                  </div>
-
-                  {isLoading && (
-                    <div className="mt-3 pt-3 border-t border-white/10">
-                      <p className="text-xs text-cyan-400 text-center">A autenticar e a carregar plataforma…</p>
-                    </div>
-                  )}
-                </motion.button>
-              );
-            })}
-          </div>
-
-          {/* Error */}
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm text-center">
-              {error}
+          {/* Login form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">Email</label>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <input
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="seuemail@empresa.ao"
+                  className="w-full bg-[#111827] border border-white/10 focus:border-cyan-500/50 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-gray-600 outline-none transition-colors"
+                />
+              </div>
             </div>
-          )}
+
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">Palavra-passe</label>
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-[#111827] border border-white/10 focus:border-cyan-500/50 rounded-xl pl-10 pr-11 py-3 text-sm text-white placeholder:text-gray-600 outline-none transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm text-center">
+                {error}
+              </div>
+            )}
+
+            <motion.button
+              type="submit"
+              disabled={loading}
+              whileHover={{ scale: loading ? 1 : 1.01 }}
+              whileTap={{ scale: loading ? 1 : 0.99 }}
+              className="w-full bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 disabled:opacity-60 disabled:cursor-wait text-white font-semibold text-sm rounded-xl py-3.5 transition-all shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  A autenticar…
+                </>
+              ) : (
+                "Entrar"
+              )}
+            </motion.button>
+          </form>
 
           <p className="text-center text-xs text-gray-600 pt-2">
             ELEVEN Technology · Plataforma de Inteligência de Dados

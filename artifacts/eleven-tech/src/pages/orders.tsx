@@ -3,17 +3,7 @@ import { Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { AppLayout } from "@/components/layout";
 import { motion } from "framer-motion";
 
-const ORDERS = [
-  { id: "ORD-001", customer: "Alice D.", date: "2023-03-23", status: "Pending", items: "Smart Watch X", total: "$120" },
-  { id: "ORD-002", customer: "Bob S.", date: "2023-03-22", status: "Shipped", items: "Wireless Earbuds", total: "$85" },
-  { id: "ORD-003", customer: "Charlie K.", date: "2023-03-22", status: "Delivered", items: "Portable Charger", total: "$210" },
-  { id: "ORD-004", customer: "David L.", date: "2023-03-21", status: "Delivered", items: "Gaming Mouse", total: "$150" },
-  { id: "ORD-005", customer: "Alice D.", date: "2023-03-21", status: "Shipped", items: "Wireless Earbuds", total: "$95" },
-  { id: "ORD-006", customer: "David L.", date: "2023-03-22", status: "Delivered", items: "Gaming Mouse", total: "$150" },
-  { id: "ORD-007", customer: "Alice D.", date: "2023-03-21", status: "Cancelled", items: "Smart Watch X", total: "$1,200" },
-  { id: "ORD-008", customer: "Bob S.", date: "2023-03-21", status: "Delivered", items: "Portable Charger", total: "$1,200" },
-  { id: "ORD-009", customer: "David L.", date: "2023-03-22", status: "Cancelled", items: "Gaming Mouse", total: "$650" },
-];
+const ORDERS: { id: string; customer: string; date: string; status: string; items: string; total: string }[] = [];
 
 const STATUS_COLORS: Record<string, string> = {
   Pending: "text-yellow-400 bg-yellow-400/10 border-yellow-400/30",
@@ -74,36 +64,44 @@ export default function Orders() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((order, i) => (
-                  <motion.tr
-                    key={order.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: i * 0.04 }}
-                    className="border-b border-white/5 hover:bg-white/3 transition-colors"
-                  >
-                    <td className="px-4 py-3 text-gray-300 font-mono text-xs">{order.id}</td>
-                    <td className="px-4 py-3 text-gray-200">{order.customer}</td>
-                    <td className="px-4 py-3 text-gray-400 text-xs">{order.date}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-full border text-[11px] font-medium ${STATUS_COLORS[order.status]}`}>
-                        {order.status}
-                      </span>
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-10 text-center text-xs text-gray-500">
+                      Nenhuma encomenda registada ainda
                     </td>
-                    <td className="px-4 py-3 text-gray-300">{order.items}</td>
-                    <td className="px-4 py-3 text-white font-semibold">{order.total}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5">
-                        <button className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 hover:text-cyan-400 hover:bg-cyan-400/10 transition-colors">
-                          <Pencil size={12} />
-                        </button>
-                        <button className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 hover:text-red-400 hover:bg-red-400/10 transition-colors">
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))}
+                  </tr>
+                ) : (
+                  filtered.map((order, i) => (
+                    <motion.tr
+                      key={order.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: i * 0.04 }}
+                      className="border-b border-white/5 hover:bg-white/3 transition-colors"
+                    >
+                      <td className="px-4 py-3 text-gray-300 font-mono text-xs">{order.id}</td>
+                      <td className="px-4 py-3 text-gray-200">{order.customer}</td>
+                      <td className="px-4 py-3 text-gray-400 text-xs">{order.date}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 rounded-full border text-[11px] font-medium ${STATUS_COLORS[order.status]}`}>
+                          {order.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-300">{order.items}</td>
+                      <td className="px-4 py-3 text-white font-semibold">{order.total}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5">
+                          <button className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 hover:text-cyan-400 hover:bg-cyan-400/10 transition-colors">
+                            <Pencil size={12} />
+                          </button>
+                          <button className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 hover:text-red-400 hover:bg-red-400/10 transition-colors">
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </td>
+                    </motion.tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -113,13 +111,9 @@ export default function Orders() {
             <button className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 hover:text-white transition-colors">
               <ChevronLeft size={13} />
             </button>
-            {[1, 2, 3].map(n => (
-              <button key={n} className={`w-7 h-7 rounded-lg text-xs font-medium transition-colors ${n === 1 ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30" : "bg-white/5 text-gray-400 hover:text-white"}`}>
-                {n}
-              </button>
-            ))}
-            <span className="text-gray-500 text-xs">...</span>
-            <button className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 hover:text-white transition-colors">9</button>
+            <button className="w-7 h-7 rounded-lg text-xs font-medium bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+              1
+            </button>
             <button className="flex items-center gap-1 px-3 h-7 rounded-lg bg-white/5 text-xs text-gray-400 hover:text-white transition-colors">
               Next <ChevronRight size={12} />
             </button>
@@ -138,15 +132,15 @@ export default function Orders() {
             <div className="space-y-5">
               <div>
                 <div className="text-xs text-gray-400 mb-1">Total Orders Today</div>
-                <div className="text-4xl font-bold text-white">45</div>
+                <div className="text-4xl font-bold text-white">0</div>
               </div>
               <div className="border-t border-white/5 pt-4">
                 <div className="text-xs text-gray-400 mb-1">Pending Shipments</div>
-                <div className="text-4xl font-bold text-white">12</div>
+                <div className="text-4xl font-bold text-white">0</div>
               </div>
               <div className="border-t border-white/5 pt-4">
                 <div className="text-xs text-gray-400 mb-1">Returns</div>
-                <div className="text-4xl font-bold text-white">3</div>
+                <div className="text-4xl font-bold text-white">0</div>
               </div>
             </div>
           </div>

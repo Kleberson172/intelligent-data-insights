@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { computeDashboardFromData } from "../../lib/csv-store";
 
 const router: IRouter = Router();
 
@@ -24,41 +25,68 @@ const salesByProvince = [
   { provincia: "Cabinda", vendas: 245000000, percentagem: 9.2 },
   { provincia: "Namibe", vendas: 178000000, percentagem: 6.7 },
   { provincia: "Malanje", vendas: 134000000, percentagem: 5.0 },
-  { provincia: "Uíge", vendas: 52000000, percentagem: 1.9 },
+  { provincia: "Uige", vendas: 52000000, percentagem: 1.9 },
 ];
 
 const topProducts = [
-  { produto: "Combustíveis", vendas: 789000000, unidades: 45230, crescimento: 23.4 },
-  { produto: "Eletrônicos", vendas: 456000000, unidades: 12890, crescimento: 31.2 },
-  { produto: "Alimentação", vendas: 378000000, unidades: 98450, crescimento: 8.7 },
-  { produto: "Construção", vendas: 289000000, unidades: 23670, crescimento: 18.9 },
-  { produto: "Farmácia", vendas: 198000000, unidades: 34560, crescimento: 14.3 },
-  { produto: "Vestuário", vendas: 145000000, unidades: 67890, crescimento: -2.1 },
+  { produto: "Combustiveis", vendas: 789000000, unidades: 45230, crescimento: 23.4 },
+  { produto: "Eletronicos", vendas: 456000000, unidades: 12890, crescimento: 31.2 },
+  { produto: "Alimentacao", vendas: 378000000, unidades: 98450, crescimento: 8.7 },
+  { produto: "Construcao", vendas: 289000000, unidades: 23670, crescimento: 18.9 },
+  { produto: "Farmacia", vendas: 198000000, unidades: 34560, crescimento: 14.3 },
+  { produto: "Vestuario", vendas: 145000000, unidades: 67890, crescimento: -2.1 },
 ];
 
 router.get("/dashboard/summary", async (_req, res): Promise<void> => {
+  const real = computeDashboardFromData();
+
+  if (real) {
+    res.json({
+      totalRevenue: real.totalRevenue,
+      totalOrders: real.totalOrders,
+      avgOrderValue: real.avgOrderValue,
+      growthRate: real.growthRate,
+      activeClients: real.activeClients,
+      anomaliesDetected: real.anomaliesDetected,
+      source: "real",
+    });
+    return;
+  }
+
   const totalRevenue = salesData.reduce((sum, d) => sum + d.vendas, 0);
   const totalOrders = 147832;
   const avgOrderValue = Math.round(totalRevenue / totalOrders);
-  const growthRate = 34.7;
-  const activeClients = 8924;
-  const anomaliesDetected = 7;
 
   res.json({
     totalRevenue,
     totalOrders,
     avgOrderValue,
-    growthRate,
-    activeClients,
-    anomaliesDetected,
+    growthRate: 34.7,
+    activeClients: 8924,
+    anomaliesDetected: 7,
+    source: "demo",
   });
 });
 
 router.get("/dashboard/sales", async (_req, res): Promise<void> => {
+  const real = computeDashboardFromData();
+  if (real && real.monthlySeries.length > 0) {
+    res.json(real.monthlySeries);
+    return;
+  }
   res.json(salesData);
 });
 
 router.get("/dashboard/sales-by-province", async (_req, res): Promise<void> => {
+  const real = computeDashboardFromData();
+  if (real && real.byCategory.length > 0) {
+    res.json(real.byCategory.map(c => ({
+      provincia: c.categoria,
+      vendas: c.valor,
+      percentagem: c.percentagem,
+    })));
+    return;
+  }
   res.json(salesByProvince);
 });
 

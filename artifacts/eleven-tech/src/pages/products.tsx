@@ -3,14 +3,7 @@ import { Plus, Search, SlidersHorizontal, ArrowUpDown, Pencil, Trash2 } from "lu
 import { AppLayout } from "@/components/layout";
 import { motion } from "framer-motion";
 
-const PRODUCTS = [
-  { id: 1, name: "Smart Watch X", price: "$120", stock: "1,200 in stock", emoji: "⌚", category: "Electronics" },
-  { id: 2, name: "Wireless Earbuds", price: "$50", stock: "950 in stock", emoji: "🎧", category: "Electronics" },
-  { id: 3, name: "Portable Charger", price: "$30", stock: "800 in stock", emoji: "🔋", category: "Accessories" },
-  { id: 4, name: "Gaming Mouse", price: "$45", stock: "650 in stock", emoji: "🖱️", category: "Gaming" },
-  { id: 5, name: "Bluetooth Speaker", price: "$75", stock: "420 in stock", emoji: "🔊", category: "Electronics" },
-  { id: 6, name: "USB-C Hub", price: "$35", stock: "1,100 in stock", emoji: "🔌", category: "Accessories" },
-];
+const PRODUCTS: { id: number; name: string; price: string; stock: string; emoji: string; category: string }[] = [];
 
 export default function Products() {
   const [search, setSearch] = useState("");
@@ -54,37 +47,48 @@ export default function Products() {
         </motion.div>
 
         {/* Product Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((product, i) => (
-            <motion.div
-              key={product.id}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06, duration: 0.4 }}
-              className="glass-card rounded-2xl p-5 hover:border-white/15 transition-colors group"
-            >
-              <div className="flex items-start gap-4">
-                <div className="w-16 h-16 rounded-xl bg-white/5 flex items-center justify-center text-4xl flex-shrink-0">
-                  {product.emoji}
+        {filtered.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="glass-card rounded-2xl p-12 text-center"
+          >
+            <p className="text-sm text-gray-500">Nenhum produto registado ainda</p>
+            <p className="text-xs text-gray-600 mt-1">Clique em "Add New Product" para começar</p>
+          </motion.div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered.map((product, i) => (
+              <motion.div
+                key={product.id}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.06, duration: 0.4 }}
+                className="glass-card rounded-2xl p-5 hover:border-white/15 transition-colors group"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="w-16 h-16 rounded-xl bg-white/5 flex items-center justify-center text-4xl flex-shrink-0">
+                    {product.emoji}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-white font-semibold text-base leading-tight">{product.name}</h3>
+                    <div className="text-2xl font-bold text-white mt-1">{product.price}</div>
+                    <div className="text-xs text-gray-400 mt-0.5">{product.stock}</div>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-white font-semibold text-base leading-tight">{product.name}</h3>
-                  <div className="text-2xl font-bold text-white mt-1">{product.price}</div>
-                  <div className="text-xs text-gray-400 mt-0.5">{product.stock}</div>
+                <div className="flex items-center gap-2 mt-4 pt-3 border-t border-white/5">
+                  <span className="flex-1 text-xs text-gray-500">{product.category}</span>
+                  <button className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 hover:text-cyan-400 hover:bg-cyan-400/10 transition-colors">
+                    <Pencil size={13} />
+                  </button>
+                  <button className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 hover:text-red-400 hover:bg-red-400/10 transition-colors">
+                    <Trash2 size={13} />
+                  </button>
                 </div>
-              </div>
-              <div className="flex items-center gap-2 mt-4 pt-3 border-t border-white/5">
-                <span className="flex-1 text-xs text-gray-500">{product.category}</span>
-                <button className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 hover:text-cyan-400 hover:bg-cyan-400/10 transition-colors">
-                  <Pencil size={13} />
-                </button>
-                <button className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 hover:text-red-400 hover:bg-red-400/10 transition-colors">
-                  <Trash2 size={13} />
-                </button>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
     </AppLayout>
   );

@@ -1,4 +1,4 @@
-import bcrypt from "bcryptjs";
+﻿import bcrypt from "bcryptjs";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { z } from "zod";
 import { db, sessionsTable, auditLogsTable, usersTable } from "@workspace/db";
@@ -51,7 +51,7 @@ router.get("/admin/sessions", requireAdmin, async (_req: Request, res: Response)
 });
 
 router.delete("/admin/sessions/:sid", requireAdmin, async (req: Request, res: Response) => {
-  const { sid } = req.params;
+  const sid = String(req.params.sid);
 
   const [row] = await db
     .select()
@@ -168,7 +168,7 @@ const UpdateUserBody = z.object({
 });
 
 router.patch("/admin/users/:id", requireAdmin, async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = String(req.params.id);
   const parsed = UpdateUserBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Dados invalidos." });
@@ -210,7 +210,7 @@ router.patch("/admin/users/:id", requireAdmin, async (req: Request, res: Respons
 });
 
 router.delete("/admin/users/:id", requireAdmin, async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = String(req.params.id);
 
   if (id === req.user?.id) {
     res.status(400).json({ error: "Nao pode eliminar a sua propria conta." });

@@ -15,7 +15,7 @@ export const ROLE_CONFIG: Record<UserRole, RoleConfig> = {
   Administrador: {
     label: "Administrador",
     badgeClass: "bg-indigo-500/15 text-indigo-300 border-indigo-500/30",
-    allowedPaths: ["/", "/products", "/orders", "/customers", "/analytics", "/marketing", "/settings", "/admin"],
+    allowedPaths: ["/", "/products", "/orders", "/customers", "/analytics", "/marketing", "/settings", "/admin", "/anomalias", "/predicoes"],
     canManageSettings: true,
     canManageProducts: true,
     canManageMarketing: true,
@@ -25,7 +25,7 @@ export const ROLE_CONFIG: Record<UserRole, RoleConfig> = {
   Analista: {
     label: "Analista",
     badgeClass: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30",
-    allowedPaths: ["/", "/analytics", "/customers"],
+    allowedPaths: ["/", "/analytics", "/customers", "/anomalias", "/predicoes"],
     canManageSettings: false,
     canManageProducts: false,
     canManageMarketing: false,

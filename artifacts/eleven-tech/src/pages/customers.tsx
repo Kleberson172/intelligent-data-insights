@@ -3,17 +3,7 @@ import { Plus, Search, Filter, ChevronDown } from "lucide-react";
 import { AppLayout } from "@/components/layout";
 import { motion } from "framer-motion";
 
-const CUSTOMERS = [
-  { id: "CUST-001", name: "Alice D.", email: "alice@example.com", phone: "+1 555-0101", location: "New York", status: "Active" },
-  { id: "CUST-002", name: "Bob S.", email: "bob@example.com", phone: "+1 555-0101", location: "New York", status: "Active" },
-  { id: "CUST-003", name: "Charlie K.", email: "charlie@example.com", phone: "+1 555-0101", location: "New York", status: "Active" },
-  { id: "CUST-004", name: "David L.", email: "david@example.com", phone: "+1 555-0101", location: "New York", status: "Active" },
-  { id: "CUST-005", name: "Alice D.", email: "alice2@example.com", phone: "+1 555-0101", location: "New York", status: "Active" },
-  { id: "CUST-006", name: "Bob S.", email: "bob2@example.com", phone: "+1 555-0101", location: "New York", status: "Inactive" },
-  { id: "CUST-007", name: "Alice D.", email: "alice3@example.com", phone: "+1 555-0101", location: "New York", status: "Active" },
-  { id: "CUST-008", name: "Charlie K.", email: "charlie2@example.com", phone: "+1 555-0101", location: "New York", status: "Active" },
-  { id: "CUST-009", name: "David L.", email: "david2@example.com", phone: "+1 555-0101", location: "New York", status: "Pending" },
-];
+const CUSTOMERS: { id: string; name: string; email: string; phone: string; location: string; status: string }[] = [];
 
 const STATUS_COLORS: Record<string, string> = {
   Active: "text-green-400 bg-green-400/10 border-green-400/30",
@@ -103,37 +93,45 @@ export default function Customers() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((c, i) => (
-                <motion.tr
-                  key={c.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: i * 0.04 }}
-                  className="border-b border-white/5 hover:bg-white/3 transition-colors"
-                >
-                  <td className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={selected.includes(c.id)}
-                      onChange={() => toggle(c.id)}
-                      className="rounded border-white/20 bg-white/5 accent-cyan-500"
-                    />
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-4 py-10 text-center text-xs text-gray-500">
+                    Nenhum cliente registado ainda
                   </td>
-                  <td className="px-4 py-3 text-gray-300 font-mono text-xs">{c.id}</td>
-                  <td className="px-4 py-3 text-gray-200 font-medium">{c.name}</td>
-                  <td className="px-4 py-3 text-gray-400 text-xs">{c.email}</td>
-                  <td className="px-4 py-3 text-gray-400 text-xs">{c.phone}</td>
-                  <td className="px-4 py-3 text-gray-400 text-xs">{c.location}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2.5 py-1 rounded-full border text-[11px] font-medium ${STATUS_COLORS[c.status]}`}>
-                      {c.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <button className="text-gray-500 hover:text-white transition-colors">···</button>
-                  </td>
-                </motion.tr>
-              ))}
+                </tr>
+              ) : (
+                filtered.map((c, i) => (
+                  <motion.tr
+                    key={c.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: i * 0.04 }}
+                    className="border-b border-white/5 hover:bg-white/3 transition-colors"
+                  >
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selected.includes(c.id)}
+                        onChange={() => toggle(c.id)}
+                        className="rounded border-white/20 bg-white/5 accent-cyan-500"
+                      />
+                    </td>
+                    <td className="px-4 py-3 text-gray-300 font-mono text-xs">{c.id}</td>
+                    <td className="px-4 py-3 text-gray-200 font-medium">{c.name}</td>
+                    <td className="px-4 py-3 text-gray-400 text-xs">{c.email}</td>
+                    <td className="px-4 py-3 text-gray-400 text-xs">{c.phone}</td>
+                    <td className="px-4 py-3 text-gray-400 text-xs">{c.location}</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2.5 py-1 rounded-full border text-[11px] font-medium ${STATUS_COLORS[c.status]}`}>
+                        {c.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <button className="text-gray-500 hover:text-white transition-colors">···</button>
+                    </td>
+                  </motion.tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

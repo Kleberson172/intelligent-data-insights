@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { computeAnomaliesFromData } from "../../lib/csv-store";
 
 const router: IRouter = Router();
 
@@ -6,22 +7,22 @@ const anomalyList = [
   {
     id: 1,
     date: "2024-11-28",
-    metric: "Vendas Diárias - Luanda",
+    metric: "Vendas Diarias - Luanda",
     value: 28900000,
     expectedValue: 11200000,
     deviation: 158.0,
     severity: "critical",
-    description: "Pico de vendas incomum durante a Black Friday. Volume 158% acima da média histórica para uma sexta-feira.",
+    description: "Pico de vendas incomum durante a Black Friday. Volume 158% acima da media historica para uma sexta-feira.",
   },
   {
     id: 2,
     date: "2024-10-15",
-    metric: "Taxa de Devoluções - Eletrônicos",
+    metric: "Taxa de Devolucoes - Eletronicos",
     value: 18.4,
     expectedValue: 4.2,
     deviation: 338.1,
     severity: "critical",
-    description: "Taxa de devolução de eletrônicos anormalmente alta. Possível problema de qualidade em lote específico.",
+    description: "Taxa de devolucao de eletronicos anormalmente alta. Possivel problema de qualidade em lote especifico.",
   },
   {
     id: 3,
@@ -31,17 +32,17 @@ const anomalyList = [
     expectedValue: 14800000,
     deviation: -91.9,
     severity: "warning",
-    description: "Queda brusca nas vendas da província do Namibe. Possível disrupção logística ou desabastecimento.",
+    description: "Queda brusca nas vendas da provincia do Namibe. Possivel disrupcao logistica ou desabastecimento.",
   },
   {
     id: 4,
     date: "2024-08-22",
-    metric: "Margem de Lucro - Combustíveis",
+    metric: "Margem de Lucro - Combustiveis",
     value: 3.1,
     expectedValue: 12.8,
     deviation: -75.8,
     severity: "warning",
-    description: "Margem de lucro em combustíveis abaixo do esperado. Verificar custos de aquisição e preços de venda.",
+    description: "Margem de lucro em combustiveis abaixo do esperado. Verificar custos de aquisicao e precos de venda.",
   },
   {
     id: 5,
@@ -51,17 +52,17 @@ const anomalyList = [
     expectedValue: 312,
     deviation: 186.0,
     severity: "info",
-    description: "Aquisição acelerada de novos clientes em Benguela. Verificar campanha de marketing em vigor.",
+    description: "Aquisicao acelerada de novos clientes em Benguela. Verificar campanha de marketing em vigor.",
   },
   {
     id: 6,
     date: "2024-06-18",
-    metric: "Ticket Médio - Alimentação",
+    metric: "Ticket Medio - Alimentacao",
     value: 245000,
     expectedValue: 187000,
     deviation: 31.0,
     severity: "info",
-    description: "Ticket médio do setor de alimentação acima da média. Possível efeito de inflação nos preços.",
+    description: "Ticket medio do setor de alimentacao acima da media. Possivel efeito de inflacao nos precos.",
   },
   {
     id: 7,
@@ -71,15 +72,43 @@ const anomalyList = [
     expectedValue: 28.4,
     deviation: 136.9,
     severity: "warning",
-    description: "Proporção de vendas online muito acima da média histórica. Possível problema no sistema de ponto de venda.",
+    description: "Proporcao de vendas online muito acima da media historica. Possivel problema no sistema de ponto de venda.",
   },
 ];
 
 router.get("/anomalies", async (_req, res): Promise<void> => {
+  const real = computeAnomaliesFromData();
+
+  if (real && real.length > 0) {
+    res.json(real.map(a => ({
+      ...a,
+      date: new Date().toISOString().slice(0, 10),
+    })));
+    return;
+  }
+
   res.json(anomalyList);
 });
 
 router.get("/anomalies/stats", async (_req, res): Promise<void> => {
+  const real = computeAnomaliesFromData();
+
+  if (real) {
+    const critical = real.filter(a => a.severity === "critical").length;
+    const warning = real.filter(a => a.severity === "warning").length;
+    const info = real.filter(a => a.severity === "info").length;
+
+    res.json({
+      totalDetected: real.length,
+      critical,
+      warning,
+      info,
+      lastScanDate: new Date().toISOString(),
+      dataPointsAnalyzed: real.length,
+    });
+    return;
+  }
+
   res.json({
     totalDetected: 7,
     critical: 2,

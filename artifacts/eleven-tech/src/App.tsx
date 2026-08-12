@@ -16,6 +16,8 @@ import Analytics from "@/pages/analytics";
 import Marketing from "@/pages/marketing";
 import SettingsPage from "@/pages/settings";
 import Admin from "@/pages/admin";
+import Anomalias from "@/pages/anomalias";
+import Predicoes from "@/pages/predicoes";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -46,7 +48,7 @@ function Router() {
             alt="ELEVEN"
             className="w-16 h-16 object-contain drop-shadow-[0_0_20px_rgba(56,189,248,0.6)] animate-pulse"
           />
-          <div className="text-gray-400 text-sm tracking-widest uppercase">A carregar…</div>
+          <div className="text-gray-400 text-sm tracking-widest uppercase">A carregar...</div>
         </div>
       </div>
     );
@@ -79,6 +81,12 @@ function Router() {
       </Route>
       <Route path="/admin">
         <ProtectedRoute path="/admin" component={Admin} />
+      </Route>
+      <Route path="/anomalias">
+        <ProtectedRoute path="/anomalias" component={Anomalias} />
+      </Route>
+      <Route path="/predicoes">
+        <ProtectedRoute path="/predicoes" component={Predicoes} />
       </Route>
       <Route component={NotFound} />
     </Switch>

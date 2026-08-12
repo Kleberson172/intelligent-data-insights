@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+﻿import { Router, type IRouter } from "express";
 import { eq, desc } from "drizzle-orm";
 import { db, conversations, messages } from "@workspace/db";
 import { openai } from "@workspace/integrations-openai-ai-server";
@@ -14,20 +14,20 @@ import { getCsvData } from "../../lib/csv-store";
 
 const router: IRouter = Router();
 
-const BASE_SYSTEM_PROMPT = `Você é o Agente de IA da ELEVEN Technology — uma plataforma angolana de inteligência de dados. O seu papel é responder dúvidas do utilizador, analisar dados de negócio e fornecer insights estratégicos.
+const BASE_SYSTEM_PROMPT = `VocÃª Ã© o Agente de IA da ELEVEN Technology â€” uma plataforma angolana de inteligÃªncia de dados. O seu papel Ã© responder dÃºvidas do utilizador, analisar dados de negÃ³cio e fornecer insights estratÃ©gicos.
 
-Contexto padrão (dataset vendas_angola.csv):
-- Período: Janeiro 2023 a Dezembro 2024
-- Províncias: Luanda, Benguela, Huambo, Namibe, Cabinda, Malanje, Uíge, Zaire
-- Produtos: Eletrónicos, Alimentação, Vestuário, Construção, Farmácia, Combustíveis
-- Métricas: Vendas (AOA), Despesas, Lucro, Unidades Vendidas, Número de Clientes
+Contexto padrÃ£o (dataset vendas_angola.csv):
+- PerÃ­odo: Janeiro 2023 a Dezembro 2024
+- ProvÃ­ncias: Luanda, Benguela, Huambo, Namibe, Cabinda, Malanje, UÃ­ge, Zaire
+- Produtos: EletrÃ³nicos, AlimentaÃ§Ã£o, VestuÃ¡rio, ConstruÃ§Ã£o, FarmÃ¡cia, CombustÃ­veis
+- MÃ©tricas: Vendas (AOA), Despesas, Lucro, Unidades Vendidas, NÃºmero de Clientes
 
-REGRAS OBRIGATÓRIAS:
-1. Responda SEMPRE em português europeu/angolano — NUNCA em inglês.
-2. Seja directo, específico e use números concretos.
-3. Formate as respostas com listas, negrito e secções claras.
-4. Se o utilizador fizer uma pergunta geral (não sobre dados), responda de forma útil e em português.
-5. Cumprimente o utilizador de forma amigável quando iniciar a conversa.`;
+REGRAS OBRIGATÃ“RIAS:
+1. Responda SEMPRE em portuguÃªs europeu/angolano â€” NUNCA em inglÃªs.
+2. Seja directo, especÃ­fico e use nÃºmeros concretos.
+3. Formate as respostas com listas, negrito e secÃ§Ãµes claras.
+4. Se o utilizador fizer uma pergunta geral (nÃ£o sobre dados), responda de forma Ãºtil e em portuguÃªs.
+5. Cumprimente o utilizador de forma amigÃ¡vel quando iniciar a conversa.`;
 
 function buildSystemPrompt(): string {
   const csv = getCsvData();
@@ -36,11 +36,11 @@ function buildSystemPrompt(): string {
   return `${BASE_SYSTEM_PROMPT}
 
 ======= DADOS REAIS CARREGADOS PELO UTILIZADOR =======
-O utilizador carregou um ficheiro CSV personalizado. Utilize estes dados reais para as análises:
+O utilizador carregou um ficheiro CSV personalizado. Utilize estes dados reais para as anÃ¡lises:
 
 ${csv.summary}
 
-INSTRUÇÕES: Ao responder perguntas sobre dados, use SEMPRE os dados reais carregados acima em vez do dataset padrão. Mencione o nome do ficheiro "${csv.filename}" quando relevante.`;
+INSTRUÃ‡Ã•ES: Ao responder perguntas sobre dados, use SEMPRE os dados reais carregados acima em vez do dataset padrÃ£o. Mencione o nome do ficheiro "${csv.filename}" quando relevante.`;
 }
 
 router.get("/openai/conversations", async (req, res): Promise<void> => {
@@ -180,7 +180,7 @@ router.post("/openai/conversations/:id/messages", async (req, res): Promise<void
 
   try {
     const stream = await openai.chat.completions.create({
-      model: "gpt-5.4",
+      model: "gemini-2.5-flash",
       max_completion_tokens: 8192,
       messages: chatMessages,
       stream: true,
@@ -210,3 +210,5 @@ router.post("/openai/conversations/:id/messages", async (req, res): Promise<void
 });
 
 export default router;
+
+

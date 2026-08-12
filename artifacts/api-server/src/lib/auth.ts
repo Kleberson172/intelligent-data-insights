@@ -1,4 +1,4 @@
-import crypto from "crypto";
+﻿import crypto from "crypto";
 import { type Request, type Response } from "express";
 import { db, sessionsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
@@ -41,7 +41,7 @@ export async function getSession(sid: string): Promise<SessionData | null> {
     return null;
   }
 
-  return row.sess as unknown as SessionData;
+  return row.sess as SessionData;
 }
 
 export async function deleteSession(sid: string): Promise<void> {

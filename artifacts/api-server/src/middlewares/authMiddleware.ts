@@ -15,7 +15,7 @@ declare global {
       user?: User | undefined;
     }
 
-    export interface AuthedRequest {
+    export interface AuthedRequest extends Request {
       user: User;
     }
   }

@@ -9,28 +9,18 @@ import {
 import { motion } from "framer-motion";
 
 const vendasSemanais = [
-  { dia: "Seg", valor: 4800000 },
-  { dia: "Ter", valor: 6200000 },
-  { dia: "Qua", valor: 5100000 },
-  { dia: "Qui", valor: 7800000 },
-  { dia: "Sex", valor: 9400000 },
-  { dia: "Sáb", valor: 12100000 },
-  { dia: "Dom", valor: 8600000 },
+  { dia: "Seg", valor: 0 },
+  { dia: "Ter", valor: 0 },
+  { dia: "Qua", valor: 0 },
+  { dia: "Qui", valor: 0 },
+  { dia: "Sex", valor: 0 },
+  { dia: "Sáb", valor: 0 },
+  { dia: "Dom", valor: 0 },
 ];
 
-const encomendas = [
-  { id: "ENC-001", cliente: "Luísa M.", estado: "Pendente", total: "245.000 AOA" },
-  { id: "ENC-002", cliente: "João S.", estado: "Enviado", total: "187.500 AOA" },
-  { id: "ENC-003", cliente: "Marta K.", estado: "Entregue", total: "512.000 AOA" },
-  { id: "ENC-004", cliente: "Carlos L.", estado: "Em Processo", total: "334.000 AOA" },
-];
+const encomendas: { id: string; cliente: string; estado: string; total: string }[] = [];
 
-const topProdutos = [
-  { nome: "Smartphone 4G", vendido: "1.240 vendidos", emoji: "📱" },
-  { nome: "Painel Solar 200W", vendido: "980 vendidos", emoji: "☀️" },
-  { nome: "Gerador 2kVA", vendido: "755 vendidos", emoji: "⚡" },
-  { nome: "Televisão 55\"", vendido: "612 vendidos", emoji: "📺" },
-];
+const topProdutos: { nome: string; vendido: string; emoji: string }[] = [];
 
 const ESTADO_CORES: Record<string, string> = {
   Pendente: "text-yellow-400 bg-yellow-400/10 border-yellow-400/30",
@@ -90,7 +80,7 @@ const formatAOA = (v: number) => {
 };
 
 export default function Dashboard() {
-  const receita = useCountUp(54_820_000);
+  const receita = useCountUp(0);
 
   return (
     <AppLayout title="Dashboard">
@@ -101,7 +91,7 @@ export default function Dashboard() {
             icon={DollarSign}
             label="Receita Total"
             value={`${receita.toLocaleString("pt-PT")} AOA`}
-            change="+15%"
+            change="0%"
             positive
             color="bg-cyan-500/15 text-cyan-400"
             delay={0}
@@ -109,8 +99,8 @@ export default function Dashboard() {
           <StatCard
             icon={ShoppingBag}
             label="Total de Encomendas"
-            value="1.247"
-            change="+8%"
+            value="0"
+            change="0%"
             positive
             color="bg-indigo-500/15 text-indigo-400"
             delay={0.06}
@@ -118,8 +108,8 @@ export default function Dashboard() {
           <StatCard
             icon={Users}
             label="Clientes Activos"
-            value="1.450"
-            change="+12%"
+            value="0"
+            change="0%"
             positive
             color="bg-purple-500/15 text-purple-400"
             delay={0.12}
@@ -127,8 +117,8 @@ export default function Dashboard() {
           <StatCard
             icon={AlertTriangle}
             label="Alertas Pendentes"
-            value="24"
-            change="-3%"
+            value="0"
+            change="0%"
             positive={false}
             color="bg-amber-500/15 text-amber-400"
             delay={0.18}
@@ -196,18 +186,24 @@ export default function Dashboard() {
                 <span>Estado</span>
                 <span className="text-right">Total</span>
               </div>
-              {encomendas.map((enc) => (
-                <div key={enc.id} className="grid grid-cols-4 text-xs py-2.5 border-b border-white/5 last:border-0 items-center gap-1">
-                  <span className="text-gray-300 font-mono text-[10px]">{enc.id}</span>
-                  <span className="text-gray-300 truncate">{enc.cliente}</span>
-                  <span>
-                    <span className={`px-1.5 py-0.5 rounded-full border text-[9px] font-medium ${ESTADO_CORES[enc.estado]}`}>
-                      {enc.estado}
-                    </span>
-                  </span>
-                  <span className="text-white font-medium text-right text-[9px]">{enc.total}</span>
+              {encomendas.length === 0 ? (
+                <div className="py-8 text-center text-xs text-gray-500">
+                  Sem encomendas registadas
                 </div>
-              ))}
+              ) : (
+                encomendas.map((enc) => (
+                  <div key={enc.id} className="grid grid-cols-4 text-xs py-2.5 border-b border-white/5 last:border-0 items-center gap-1">
+                    <span className="text-gray-300 font-mono text-[10px]">{enc.id}</span>
+                    <span className="text-gray-300 truncate">{enc.cliente}</span>
+                    <span>
+                      <span className={`px-1.5 py-0.5 rounded-full border text-[9px] font-medium ${ESTADO_CORES[enc.estado]}`}>
+                        {enc.estado}
+                      </span>
+                    </span>
+                    <span className="text-white font-medium text-right text-[9px]">{enc.total}</span>
+                  </div>
+                ))
+              )}
             </div>
           </motion.div>
         </div>
@@ -223,18 +219,24 @@ export default function Dashboard() {
           >
             <h3 className="text-white font-semibold mb-4">Top Produtos</h3>
             <div className="space-y-3">
-              {topProdutos.map((p) => (
-                <div key={p.nome} className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-xl flex-shrink-0">
-                    {p.emoji}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm text-white font-medium truncate">{p.nome}</div>
-                    <div className="text-xs text-gray-400">{p.vendido}</div>
-                  </div>
-                  <TrendingUp size={14} className="text-emerald-400 flex-shrink-0" />
+              {topProdutos.length === 0 ? (
+                <div className="py-8 text-center text-xs text-gray-500">
+                  Sem dados de produtos ainda
                 </div>
-              ))}
+              ) : (
+                topProdutos.map((p) => (
+                  <div key={p.nome} className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-xl flex-shrink-0">
+                      {p.emoji}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm text-white font-medium truncate">{p.nome}</div>
+                      <div className="text-xs text-gray-400">{p.vendido}</div>
+                    </div>
+                    <TrendingUp size={14} className="text-emerald-400 flex-shrink-0" />
+                  </div>
+                ))
+              )}
             </div>
           </motion.div>
 
@@ -247,7 +249,7 @@ export default function Dashboard() {
           >
             <div>
               <h3 className="text-white font-semibold mb-1">Clientes Activos</h3>
-              <div className="text-5xl font-bold text-cyan-400 mt-3 mb-2">1.450</div>
+              <div className="text-5xl font-bold text-cyan-400 mt-3 mb-2">0</div>
               <div className="text-xs text-gray-400">Clientes na plataforma este mês</div>
             </div>
             <div className="h-[80px] mt-4">
@@ -271,14 +273,14 @@ export default function Dashboard() {
                 <h3 className="text-white font-semibold">Alertas Pendentes</h3>
                 <AlertTriangle size={16} className="text-amber-400" />
               </div>
-              <div className="text-5xl font-bold text-amber-400 mt-3 mb-2">24</div>
+              <div className="text-5xl font-bold text-amber-400 mt-3 mb-2">0</div>
               <div className="text-xs text-gray-400">Requerem atenção</div>
             </div>
             <div className="space-y-2 mt-4">
               {[
-                { label: "Crítico", valor: 3, color: "bg-red-500" },
-                { label: "Alto", valor: 8, color: "bg-amber-500" },
-                { label: "Médio", valor: 13, color: "bg-yellow-500" },
+                { label: "Crítico", valor: 0, color: "bg-red-500" },
+                { label: "Alto", valor: 0, color: "bg-amber-500" },
+                { label: "Médio", valor: 0, color: "bg-yellow-500" },
               ].map(item => (
                 <div key={item.label} className="flex items-center gap-2 text-xs">
                   <span className={`w-2 h-2 rounded-full flex-shrink-0 ${item.color}`} />

@@ -5,35 +5,20 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar
 } from "recharts";
 
-const campaignData = [
-  { day: "Mon", email: 6000, social: 7000, ppc: 5000 },
-  { day: "Tue", email: 8000, social: 9000, ppc: 7000 },
-  { day: "Wed", email: 12000, social: 11000, ppc: 6000 },
-  { day: "Thu", email: 20000, social: 15000, ppc: 8000 },
-  { day: "Fri", email: 18000, social: 20000, ppc: 12000 },
-  { day: "Sat", email: 15000, social: 17000, ppc: 10000 },
+const campaignData: { day: string; email: number; social: number; ppc: number }[] = [
+  { day: "Mon", email: 0, social: 0, ppc: 0 },
+  { day: "Tue", email: 0, social: 0, ppc: 0 },
+  { day: "Wed", email: 0, social: 0, ppc: 0 },
+  { day: "Thu", email: 0, social: 0, ppc: 0 },
+  { day: "Fri", email: 0, social: 0, ppc: 0 },
+  { day: "Sat", email: 0, social: 0, ppc: 0 },
 ];
 
-const audienceData = [
-  { name: "Social Media", value: 45, color: "#818cf8" },
-  { name: "Search", value: 30, color: "#c084fc" },
-  { name: "Direct", value: 15, color: "#94a3b8" },
-  { name: "Referral", value: 10, color: "#64748b" },
-];
+const audienceData: { name: string; value: number; color: string }[] = [];
 
-const adSpendData = [
-  { channel: "Ad", spend: 39000 },
-  { channel: "Soc", spend: 16000 },
-  { channel: "Two", spend: 12000 },
-  { channel: "Bun", spend: 20000 },
-  { channel: "PPC", spend: 35000 },
-];
+const adSpendData: { channel: string; spend: number }[] = [];
 
-const topCampaigns = [
-  { name: "Campaign Name", rate: "10.0%" },
-  { name: "Campaign 2", rate: "7.5%" },
-  { name: "Campaign 3", rate: "5.0%" },
-];
+const topCampaigns: { name: string; rate: string }[] = [];
 
 export default function Marketing() {
   return (
@@ -91,24 +76,21 @@ export default function Marketing() {
           >
             <h3 className="text-white font-semibold mb-3">Audience Reach</h3>
             <div className="relative h-[160px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={audienceData} cx="50%" cy="50%" outerRadius={72} paddingAngle={2} dataKey="value" startAngle={90} endAngle={-270}>
-                    {audienceData.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} opacity={0.9} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-              {/* Percentage labels */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="grid grid-cols-2 gap-x-16 gap-y-1 absolute inset-0 flex items-center justify-center">
-                  <span className="absolute top-[15%] right-[10%] text-xs text-white font-semibold">10%</span>
-                  <span className="absolute top-[40%] right-[5%] text-xs text-white font-semibold">15%</span>
-                  <span className="absolute bottom-[20%] left-[25%] text-xs text-white font-semibold">45%</span>
-                  <span className="absolute top-[35%] left-[5%] text-xs text-white font-semibold">30%</span>
+              {audienceData.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-xs text-gray-500">
+                  Sem dados de audiência ainda
                 </div>
-              </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={audienceData} cx="50%" cy="50%" outerRadius={72} paddingAngle={2} dataKey="value" startAngle={90} endAngle={-270}>
+                      {audienceData.map((entry, i) => (
+                        <Cell key={i} fill={entry.color} opacity={0.9} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
             </div>
             <div className="space-y-1.5 mt-2">
               {audienceData.map(item => (
@@ -132,18 +114,24 @@ export default function Marketing() {
           >
             <h3 className="text-white font-semibold mb-4">Ad Spend</h3>
             <div className="h-[160px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={adSpendData} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                  <XAxis dataKey="channel" stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} axisLine={false} />
-                  <YAxis stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={v => `$${v/1000}k`} />
-                  <RechartsTooltip
-                    contentStyle={{ backgroundColor: 'rgba(15,18,35,0.95)', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '12px' }}
-                    formatter={(v: number) => [`$${v.toLocaleString()}`, "Spend"]}
-                  />
-                  <Bar dataKey="spend" fill="#818cf8" radius={[4, 4, 0, 0]} opacity={0.8} />
-                </BarChart>
-              </ResponsiveContainer>
+              {adSpendData.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-xs text-gray-500">
+                  Sem dados de investimento ainda
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={adSpendData} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <XAxis dataKey="channel" stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} axisLine={false} />
+                    <YAxis stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={v => `$${v/1000}k`} />
+                    <RechartsTooltip
+                      contentStyle={{ backgroundColor: 'rgba(15,18,35,0.95)', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '12px' }}
+                      formatter={(v: number) => [`$${v.toLocaleString()}`, "Spend"]}
+                    />
+                    <Bar dataKey="spend" fill="#818cf8" radius={[4, 4, 0, 0]} opacity={0.8} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </motion.div>
 
@@ -160,12 +148,18 @@ export default function Marketing() {
                 <span>Campaign Name</span>
                 <span>Rate</span>
               </div>
-              {topCampaigns.map((c, i) => (
-                <div key={i} className="flex items-center justify-between py-2.5 border-b border-white/5 last:border-0">
-                  <span className="text-sm text-gray-200">{c.name}</span>
-                  <span className="text-sm font-semibold text-cyan-400">{c.rate}</span>
+              {topCampaigns.length === 0 ? (
+                <div className="py-8 text-center text-xs text-gray-500">
+                  Sem campanhas registadas ainda
                 </div>
-              ))}
+              ) : (
+                topCampaigns.map((c, i) => (
+                  <div key={i} className="flex items-center justify-between py-2.5 border-b border-white/5 last:border-0">
+                    <span className="text-sm text-gray-200">{c.name}</span>
+                    <span className="text-sm font-semibold text-cyan-400">{c.rate}</span>
+                  </div>
+                ))
+              )}
             </div>
           </motion.div>
 
@@ -177,10 +171,10 @@ export default function Marketing() {
             className="glass-card rounded-2xl p-5 flex flex-col justify-center"
           >
             <h3 className="text-white font-semibold mb-2">Conversions</h3>
-            <div className="text-5xl font-black text-white mt-3">12,500</div>
-            <div className="flex items-center gap-1.5 mt-3 text-xs text-emerald-400">
-              <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
-              +18.3% vs last period
+            <div className="text-5xl font-black text-white mt-3">0</div>
+            <div className="flex items-center gap-1.5 mt-3 text-xs text-gray-400">
+              <span className="w-1.5 h-1.5 bg-gray-500 rounded-full" />
+              0% vs last period
             </div>
           </motion.div>
         </div>
