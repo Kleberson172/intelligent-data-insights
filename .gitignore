@@ -53,3 +53,12 @@ Thumbs.db
 .env.local
 artifacts/api-server/.env
 artifacts/eleven-tech/.env
+
+# Scripts utilitários locais (podem conter dados sensíveis nos argumentos/saída)
+/create-admin.mjs
+/create-demo-users.mjs
+/check-tables.mjs
+/check-datasets.mjs
+/test-db.mjs
+/test-openai.mjs
+/teste*.csv
