@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { ArrowUpRight, ArrowDownRight, DollarSign, ShoppingBag, Users, AlertTriangle, TrendingUp } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, DollarSign, ShoppingBag, Users, AlertTriangle, TrendingUp, TrendingDown, Package } from "lucide-react";
 import { AppLayout } from "@/components/layout";
 import { AIChatZone } from "@/components/ai-chat";
 import {
@@ -7,20 +7,16 @@ import {
   ResponsiveContainer, LineChart, Line
 } from "recharts";
 import { motion } from "framer-motion";
+import {
+  useGetDashboardSummary,
+  useGetSalesData,
+  useGetTopProducts,
+  useGetAnomalyStats,
+} from "@workspace/api-client-react";
 
-const vendasSemanais = [
-  { dia: "Seg", valor: 0 },
-  { dia: "Ter", valor: 0 },
-  { dia: "Qua", valor: 0 },
-  { dia: "Qui", valor: 0 },
-  { dia: "Sex", valor: 0 },
-  { dia: "Sáb", valor: 0 },
-  { dia: "Dom", valor: 0 },
-];
-
+// "Encomendas Recentes" ainda não tem endpoint no backend (não existe tabela de
+// encomendas/orders). Fica vazio até essa funcionalidade ser implementada.
 const encomendas: { id: string; cliente: string; estado: string; total: string }[] = [];
-
-const topProdutos: { nome: string; vendido: string; emoji: string }[] = [];
 
 const ESTADO_CORES: Record<string, string> = {
   Pendente: "text-yellow-400 bg-yellow-400/10 border-yellow-400/30",
@@ -33,7 +29,10 @@ function useCountUp(target: number, duration = 1200) {
   const [count, setCount] = useState(0);
   const frameRef = useRef<number>(0);
   useEffect(() => {
-    if (!target) return;
+    if (!target) {
+      setCount(0);
+      return;
+    }
     const start = Date.now();
     const tick = () => {
       const elapsed = Date.now() - start;
@@ -80,35 +79,52 @@ const formatAOA = (v: number) => {
 };
 
 export default function Dashboard() {
-  const receita = useCountUp(0);
+  const summaryQuery = useGetDashboardSummary();
+  const salesQuery = useGetSalesData();
+  const topProductsQuery = useGetTopProducts();
+  const anomalyStatsQuery = useGetAnomalyStats();
+
+  const summary = summaryQuery.data;
+  const salesData = salesQuery.data ?? [];
+  const topProducts = topProductsQuery.data ?? [];
+  const anomalyStats = anomalyStatsQuery.data;
+
+  const receita = useCountUp(summary?.totalRevenue ?? 0);
+  const isUsingRealData = (summary as { source?: string } | undefined)?.source === "real";
 
   return (
     <AppLayout title="Dashboard">
       <div className="space-y-5">
+        {!summaryQuery.isLoading && !isUsingRealData && (
+          <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-2.5 text-xs text-amber-300">
+            A mostrar dados de demonstração. Carrega um ficheiro CSV em "Integrações" para ver os teus dados reais.
+          </div>
+        )}
+
         {/* KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             icon={DollarSign}
             label="Receita Total"
-            value={`${receita.toLocaleString("pt-PT")} AOA`}
-            change="0%"
-            positive
+            value={summaryQuery.isLoading ? "…" : `${receita.toLocaleString("pt-PT")} AOA`}
+            change={summary ? `${summary.growthRate}%` : "0%"}
+            positive={(summary?.growthRate ?? 0) >= 0}
             color="bg-cyan-500/15 text-cyan-400"
             delay={0}
           />
           <StatCard
             icon={ShoppingBag}
             label="Total de Encomendas"
-            value="0"
-            change="0%"
-            positive
+            value={summaryQuery.isLoading ? "…" : (summary?.totalOrders ?? 0).toLocaleString("pt-PT")}
+            change={summary ? `${summary.growthRate}%` : "0%"}
+            positive={(summary?.growthRate ?? 0) >= 0}
             color="bg-indigo-500/15 text-indigo-400"
             delay={0.06}
           />
           <StatCard
             icon={Users}
             label="Clientes Activos"
-            value="0"
+            value={summaryQuery.isLoading ? "…" : (summary?.activeClients ?? 0).toLocaleString("pt-PT")}
             change="0%"
             positive
             color="bg-purple-500/15 text-purple-400"
@@ -117,7 +133,7 @@ export default function Dashboard() {
           <StatCard
             icon={AlertTriangle}
             label="Alertas Pendentes"
-            value="0"
+            value={summaryQuery.isLoading ? "…" : (summary?.anomaliesDetected ?? 0).toLocaleString("pt-PT")}
             change="0%"
             positive={false}
             color="bg-amber-500/15 text-amber-400"
@@ -142,7 +158,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-white font-semibold">Visão Geral de Vendas</h3>
-                <p className="text-gray-400 text-xs mt-0.5">Vendas Semanais (AOA)</p>
+                <p className="text-gray-400 text-xs mt-0.5">Vendas Mensais (AOA)</p>
               </div>
               <span className="flex items-center gap-1.5 text-xs text-emerald-400">
                 <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
@@ -150,24 +166,30 @@ export default function Dashboard() {
               </span>
             </div>
             <div className="h-[200px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={vendasSemanais} margin={{ top: 8, right: 4, left: -10, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="gVendas" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#818cf8" stopOpacity={0.5} />
-                      <stop offset="100%" stopColor="#818cf8" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                  <XAxis dataKey="dia" stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} axisLine={false} />
-                  <YAxis stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={formatAOA} />
-                  <RechartsTooltip
-                    contentStyle={{ backgroundColor: "rgba(15,18,35,0.95)", borderColor: "rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "12px" }}
-                    formatter={(v: number) => [`${v.toLocaleString("pt-PT")} AOA`, "Vendas"]}
-                  />
-                  <Area type="monotone" dataKey="valor" stroke="#818cf8" strokeWidth={2.5} fill="url(#gVendas)" dot={{ fill: "#818cf8", r: 4, strokeWidth: 0 }} activeDot={{ r: 5, fill: "#818cf8" }} />
-                </AreaChart>
-              </ResponsiveContainer>
+              {salesData.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-xs text-gray-500">
+                  {salesQuery.isLoading ? "A carregar…" : "Sem dados de vendas ainda"}
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={salesData} margin={{ top: 8, right: 4, left: -10, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="gVendas" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#818cf8" stopOpacity={0.5} />
+                        <stop offset="100%" stopColor="#818cf8" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <XAxis dataKey="month" stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} axisLine={false} />
+                    <YAxis stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={formatAOA} />
+                    <RechartsTooltip
+                      contentStyle={{ backgroundColor: "rgba(15,18,35,0.95)", borderColor: "rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "12px" }}
+                      formatter={(v: number) => [`${v.toLocaleString("pt-PT")} AOA`, "Vendas"]}
+                    />
+                    <Area type="monotone" dataKey="vendas" stroke="#818cf8" strokeWidth={2.5} fill="url(#gVendas)" dot={{ fill: "#818cf8", r: 4, strokeWidth: 0 }} activeDot={{ r: 5, fill: "#818cf8" }} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </motion.div>
 
@@ -219,21 +241,27 @@ export default function Dashboard() {
           >
             <h3 className="text-white font-semibold mb-4">Top Produtos</h3>
             <div className="space-y-3">
-              {topProdutos.length === 0 ? (
+              {topProducts.length === 0 ? (
                 <div className="py-8 text-center text-xs text-gray-500">
-                  Sem dados de produtos ainda
+                  {topProductsQuery.isLoading ? "A carregar…" : "Sem dados de produtos ainda"}
                 </div>
               ) : (
-                topProdutos.map((p) => (
-                  <div key={p.nome} className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-xl flex-shrink-0">
-                      {p.emoji}
+                topProducts.map((p) => (
+                  <div key={p.produto} className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center flex-shrink-0">
+                      <Package size={18} className="text-gray-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm text-white font-medium truncate">{p.nome}</div>
-                      <div className="text-xs text-gray-400">{p.vendido}</div>
+                      <div className="text-sm text-white font-medium truncate">{p.produto}</div>
+                      <div className="text-xs text-gray-400">
+                        {p.unidades.toLocaleString("pt-PT")} unidades · {formatAOA(p.vendas)} AOA
+                      </div>
                     </div>
-                    <TrendingUp size={14} className="text-emerald-400 flex-shrink-0" />
+                    {p.crescimento >= 0 ? (
+                      <TrendingUp size={14} className="text-emerald-400 flex-shrink-0" />
+                    ) : (
+                      <TrendingDown size={14} className="text-red-400 flex-shrink-0" />
+                    )}
                   </div>
                 ))
               )}
@@ -249,13 +277,15 @@ export default function Dashboard() {
           >
             <div>
               <h3 className="text-white font-semibold mb-1">Clientes Activos</h3>
-              <div className="text-5xl font-bold text-cyan-400 mt-3 mb-2">0</div>
+              <div className="text-5xl font-bold text-cyan-400 mt-3 mb-2">
+                {summaryQuery.isLoading ? "…" : (summary?.activeClients ?? 0).toLocaleString("pt-PT")}
+              </div>
               <div className="text-xs text-gray-400">Clientes na plataforma este mês</div>
             </div>
             <div className="h-[80px] mt-4">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={vendasSemanais}>
-                  <Line type="monotone" dataKey="valor" stroke="#38bdf8" strokeWidth={2} dot={false} />
+                <LineChart data={salesData}>
+                  <Line type="monotone" dataKey="vendas" stroke="#38bdf8" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -273,14 +303,16 @@ export default function Dashboard() {
                 <h3 className="text-white font-semibold">Alertas Pendentes</h3>
                 <AlertTriangle size={16} className="text-amber-400" />
               </div>
-              <div className="text-5xl font-bold text-amber-400 mt-3 mb-2">0</div>
+              <div className="text-5xl font-bold text-amber-400 mt-3 mb-2">
+                {anomalyStatsQuery.isLoading ? "…" : (anomalyStats?.totalDetected ?? 0)}
+              </div>
               <div className="text-xs text-gray-400">Requerem atenção</div>
             </div>
             <div className="space-y-2 mt-4">
               {[
-                { label: "Crítico", valor: 0, color: "bg-red-500" },
-                { label: "Alto", valor: 0, color: "bg-amber-500" },
-                { label: "Médio", valor: 0, color: "bg-yellow-500" },
+                { label: "Crítico", valor: anomalyStats?.critical ?? 0, color: "bg-red-500" },
+                { label: "Alto", valor: anomalyStats?.warning ?? 0, color: "bg-amber-500" },
+                { label: "Médio", valor: anomalyStats?.info ?? 0, color: "bg-yellow-500" },
               ].map(item => (
                 <div key={item.label} className="flex items-center gap-2 text-xs">
                   <span className={`w-2 h-2 rounded-full flex-shrink-0 ${item.color}`} />

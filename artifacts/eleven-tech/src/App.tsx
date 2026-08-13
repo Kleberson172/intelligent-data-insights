@@ -9,15 +9,11 @@ import AccessDenied from "@/pages/access-denied";
 import { canAccess } from "@/lib/permissions";
 
 import Dashboard from "@/pages/dashboard";
-import Products from "@/pages/products";
-import Orders from "@/pages/orders";
-import Customers from "@/pages/customers";
-import Analytics from "@/pages/analytics";
-import Marketing from "@/pages/marketing";
 import SettingsPage from "@/pages/settings";
 import Admin from "@/pages/admin";
 import Anomalias from "@/pages/anomalias";
 import Predicoes from "@/pages/predicoes";
+import Integracoes from "@/pages/integracoes";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -61,32 +57,20 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
-      <Route path="/products">
-        <ProtectedRoute path="/products" component={Products} />
+      <Route path="/anomalias">
+        <ProtectedRoute path="/anomalias" component={Anomalias} />
       </Route>
-      <Route path="/orders">
-        <ProtectedRoute path="/orders" component={Orders} />
+      <Route path="/predicoes">
+        <ProtectedRoute path="/predicoes" component={Predicoes} />
       </Route>
-      <Route path="/customers">
-        <ProtectedRoute path="/customers" component={Customers} />
-      </Route>
-      <Route path="/analytics">
-        <ProtectedRoute path="/analytics" component={Analytics} />
-      </Route>
-      <Route path="/marketing">
-        <ProtectedRoute path="/marketing" component={Marketing} />
+      <Route path="/integracoes">
+        <ProtectedRoute path="/integracoes" component={Integracoes} />
       </Route>
       <Route path="/settings">
         <ProtectedRoute path="/settings" component={SettingsPage} />
       </Route>
       <Route path="/admin">
         <ProtectedRoute path="/admin" component={Admin} />
-      </Route>
-      <Route path="/anomalias">
-        <ProtectedRoute path="/anomalias" component={Anomalias} />
-      </Route>
-      <Route path="/predicoes">
-        <ProtectedRoute path="/predicoes" component={Predicoes} />
       </Route>
       <Route component={NotFound} />
     </Switch>

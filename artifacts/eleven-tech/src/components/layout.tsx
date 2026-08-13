@@ -1,19 +1,21 @@
 import { Link, useLocation } from "wouter";
 import {
-  LayoutDashboard, Package, ShoppingCart, Users, BarChart2,
-  Megaphone, Settings, LogOut, Bell, Search, ShieldCheck, UserCog
+  LayoutDashboard, AlertTriangle, TrendingUp, Plug,
+  Settings, LogOut, Bell, Search, ShieldCheck, UserCog
 } from "lucide-react";
 import { useAuth } from "@workspace/replit-auth-web";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getRoleConfig } from "@/lib/permissions";
 
+// Nota: Produtos, Encomendas, Clientes, Marketing e "Análise" (analytics.tsx)
+// foram removidos do menu — eram páginas do template inicial (SaaS/ERP
+// genérico) sem qualquer endpoint ou tabela por trás. O produto real é um
+// analisador de dados (CSV → dashboard, anomalias, predições), não um ERP.
 const ALL_NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard, roles: ["Administrador", "Analista"] },
-  { href: "/products", label: "Produtos", icon: Package, roles: ["Administrador"] },
-  { href: "/orders", label: "Encomendas", icon: ShoppingCart, roles: ["Administrador"] },
-  { href: "/customers", label: "Clientes", icon: Users, roles: ["Administrador", "Analista"] },
-  { href: "/analytics", label: "Análise", icon: BarChart2, roles: ["Administrador", "Analista"] },
-  { href: "/marketing", label: "Marketing", icon: Megaphone, roles: ["Administrador"] },
+  { href: "/anomalias", label: "Anomalias", icon: AlertTriangle, roles: ["Administrador", "Analista"] },
+  { href: "/predicoes", label: "Predições", icon: TrendingUp, roles: ["Administrador", "Analista"] },
+  { href: "/integracoes", label: "Integrações", icon: Plug, roles: ["Administrador", "Analista"] },
   { href: "/settings", label: "Definições", icon: Settings, roles: ["Administrador"] },
   { href: "/admin", label: "Utilizadores", icon: ShieldCheck, roles: ["Administrador"] },
 ];
