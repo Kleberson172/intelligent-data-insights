@@ -4,5 +4,7 @@ Get-Content .env | ForEach-Object {
     [System.Environment]::SetEnvironmentVariable($matches[1].Trim(), $matches[2].Trim(), "Process")
   }
 }
+Write-Host "Compilando backend..." -ForegroundColor Yellow
+pnpm run build
 Write-Host "Iniciando backend..." -ForegroundColor Cyan
 pnpm run start

@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { computeDashboardFromData } from "../../lib/csv-store";
+import { computeDashboardFromData, computeTopProductsFromData } from "../../lib/csv-store";
 
 const router: IRouter = Router();
 
@@ -91,6 +91,11 @@ router.get("/dashboard/sales-by-province", async (_req, res): Promise<void> => {
 });
 
 router.get("/dashboard/top-products", async (_req, res): Promise<void> => {
+  const real = computeTopProductsFromData();
+  if (real && real.length > 0) {
+    res.json(real);
+    return;
+  }
   res.json(topProducts);
 });
 

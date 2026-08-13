@@ -43,7 +43,7 @@ router.post("/data/upload", upload.single("file"), async (req: Request, res: Res
     }
 
     const headers = Object.keys(records[0]);
-    storeCsvData(req.file.originalname, headers, records);
+    await storeCsvData(req.file.originalname, headers, records);
 
     req.log.info({ filename: req.file.originalname, rows: records.length }, "CSV uploaded");
 
@@ -77,7 +77,7 @@ router.get("/data/status", async (_req: Request, res: Response): Promise<void> =
 });
 
 router.delete("/data/clear", async (_req: Request, res: Response): Promise<void> => {
-  clearCsvData();
+  await clearCsvData();
   res.json({ success: true });
 });
 

@@ -1,3 +1,6 @@
+import { db, datasetsTable, datasetRowsTable } from "@workspace/db";
+import { desc, sql } from "drizzle-orm";
+
 interface DataRecord {
   [key: string]: string;
 }
@@ -33,7 +36,14 @@ function detectCategoryColumn(headers: string[], numericCols: string[]): string 
   );
 }
 
-export function storeCsvData(filename: string, headers: string[], records: DataRecord[]): void {
+// Especificamente para "produto" (usado no Top Produtos) — não deve ser
+// confundido com província/região, que tem seu próprio significado
+// (usado no gráfico de vendas por província).
+function detectProductColumn(headers: string[], numericCols: string[]): string | undefined {
+  return headers.find(h => !numericCols.includes(h) && /produto|product/i.test(h));
+}
+
+function buildDatasetInfo(filename: string, headers: string[], records: DataRecord[]): DatasetInfo {
   const sample = records.slice(0, 5);
   const numericCols = detectNumericColumns(headers, records);
 
@@ -62,13 +72,74 @@ export function storeCsvData(filename: string, headers: string[], records: DataR
     }
   }
 
-  store.set(GLOBAL_KEY, {
+  return {
     filename,
     uploadedAt: new Date(),
     headers,
     records,
     summary: summaryLines.join("\n"),
-  });
+  };
+}
+
+// Grava em memória (para as rotas síncronas que já existem) e persiste no
+// Postgres em segundo plano, para sobreviver a reinícios do servidor.
+export async function storeCsvData(filename: string, headers: string[], records: DataRecord[]): Promise<void> {
+  store.set(GLOBAL_KEY, buildDatasetInfo(filename, headers, records));
+
+  try {
+    // Por agora só suportamos um dataset ativo por vez — limpa o anterior.
+    await db.delete(datasetsTable);
+
+    const [dataset] = await db
+      .insert(datasetsTable)
+      .values({ filename, columns: headers, rowCount: records.length })
+      .returning({ id: datasetsTable.id });
+
+    if (dataset && records.length > 0) {
+      const rows = records.map((data, rowIndex) => ({
+        datasetId: dataset.id,
+        rowIndex,
+        data,
+      }));
+      // Insere em lotes para não estourar o limite de parâmetros do Postgres.
+      const BATCH_SIZE = 500;
+      for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+        await db.insert(datasetRowsTable).values(rows.slice(i, i + BATCH_SIZE));
+      }
+    }
+  } catch (err) {
+    // A persistência é "best effort": se falhar, os dados continuam
+    // disponíveis em memória para a sessão atual.
+    console.error("Falha ao persistir dataset no Postgres:", err);
+  }
+}
+
+// Recarrega o último dataset guardado no Postgres para a memória.
+// Chamado uma vez, na inicialização do servidor.
+export async function hydrateCsvStoreFromDb(): Promise<void> {
+  try {
+    const [dataset] = await db
+      .select()
+      .from(datasetsTable)
+      .orderBy(desc(datasetsTable.uploadedAt))
+      .limit(1);
+
+    if (!dataset) return;
+
+    const rows = await db
+      .select()
+      .from(datasetRowsTable)
+      .where(sql`${datasetRowsTable.datasetId} = ${dataset.id}`)
+      .orderBy(datasetRowsTable.rowIndex);
+
+    if (rows.length === 0) return;
+
+    const records = rows.map(r => r.data);
+    store.set(GLOBAL_KEY, buildDatasetInfo(dataset.filename, dataset.columns, records));
+    console.log(`Dataset "${dataset.filename}" (${records.length} linhas) recarregado do Postgres.`);
+  } catch (err) {
+    console.error("Falha ao recarregar dataset do Postgres:", err);
+  }
 }
 
 export function getCsvData(): DatasetInfo | undefined {
@@ -79,8 +150,13 @@ export function hasCsvData(): boolean {
   return store.has(GLOBAL_KEY);
 }
 
-export function clearCsvData(): void {
+export async function clearCsvData(): Promise<void> {
   store.delete(GLOBAL_KEY);
+  try {
+    await db.delete(datasetsTable);
+  } catch (err) {
+    console.error("Falha ao limpar dataset no Postgres:", err);
+  }
 }
 
 export interface DashboardMetrics {
@@ -155,6 +231,65 @@ export function computeDashboardFromData(): DashboardMetrics | null {
     monthlySeries,
     byCategory,
   };
+}
+
+export interface TopProduct {
+  produto: string;
+  vendas: number;
+  unidades: number;
+  crescimento: number;
+}
+
+export function computeTopProductsFromData(limit = 6): TopProduct[] | null {
+  const data = getCsvData();
+  if (!data) return null;
+
+  const { headers, records } = data;
+  const numericCols = detectNumericColumns(headers, records);
+  if (numericCols.length === 0) return null;
+
+  const categoryCol = detectProductColumn(headers, numericCols) ?? detectCategoryColumn(headers, numericCols);
+  if (!categoryCol) return null; // sem coluna de produto/categoria não dá para agrupar
+
+  const valueCol = numericCols.find(c => /venda|valor|total|receita|revenue|preco/i.test(c)) ?? numericCols[0];
+  const qtyCol = numericCols.find(c => /quantidade|unidade|qtd|qty|unit/i.test(c) && c !== valueCol);
+  const dateCol = detectDateColumn(headers);
+
+  const groups = new Map<string, { vendas: number; unidades: number; records: DataRecord[] }>();
+  for (const r of records) {
+    const cat = r[categoryCol] || "Outro";
+    const val = parseFloat(String(r[valueCol]).replace(/,/g, ".")) || 0;
+    const qty = qtyCol ? parseFloat(String(r[qtyCol]).replace(/,/g, ".")) || 0 : 1;
+
+    const g = groups.get(cat) ?? { vendas: 0, unidades: 0, records: [] };
+    g.vendas += val;
+    g.unidades += qty;
+    g.records.push(r);
+    groups.set(cat, g);
+  }
+
+  const sumValue = (arr: DataRecord[]) =>
+    arr.reduce((s, r) => s + (parseFloat(String(r[valueCol]).replace(/,/g, ".")) || 0), 0);
+
+  const result: TopProduct[] = [];
+  for (const [produto, g] of groups.entries()) {
+    let crescimento = 0;
+    // Compara 1ª metade vs 2ª metade da série temporal do produto, se houver data.
+    if (dateCol && g.records.length >= 4) {
+      const sorted = [...g.records].sort(
+        (a, b) => new Date(a[dateCol]).getTime() - new Date(b[dateCol]).getTime()
+      );
+      const mid = Math.floor(sorted.length / 2);
+      const firstSum = sumValue(sorted.slice(0, mid));
+      const secondSum = sumValue(sorted.slice(mid));
+      if (firstSum > 0) {
+        crescimento = Number((((secondSum - firstSum) / firstSum) * 100).toFixed(1));
+      }
+    }
+    result.push({ produto, vendas: g.vendas, unidades: Math.round(g.unidades), crescimento });
+  }
+
+  return result.sort((a, b) => b.vendas - a.vendas).slice(0, limit);
 }
 
 export interface DetectedAnomaly {

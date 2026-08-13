@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { hydrateCsvStoreFromDb } from "./lib/csv-store";
 
 const rawPort = process.env["PORT"];
 
@@ -14,6 +15,10 @@ const port = Number(rawPort);
 if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
+
+// Recarrega o último CSV carregado (se houver) antes de aceitar requisições,
+// para que o dataset sobreviva a reinícios do servidor.
+await hydrateCsvStoreFromDb();
 
 app.listen(port, (err) => {
   if (err) {
