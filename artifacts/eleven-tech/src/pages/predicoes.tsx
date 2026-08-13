@@ -91,9 +91,9 @@ export default function Predicoes() {
                 <Card>
                   <CardContent className="p-4">
                     <div className="text-sm text-muted-foreground mb-1">Precisão (Accuracy)</div>
-                    <div className="text-2xl font-bold text-foreground">{(confidence.accuracy * 100).toFixed(1)}%</div>
+                    <div className="text-2xl font-bold text-foreground">{confidence.accuracy.toFixed(1)}%</div>
                     <div className="w-full bg-muted rounded-full h-1.5 mt-3">
-                      <div className="bg-primary h-1.5 rounded-full" style={{ width: `${confidence.accuracy * 100}%` }}></div>
+                      <div className="bg-primary h-1.5 rounded-full" style={{ width: `${Math.min(100, confidence.accuracy)}%` }}></div>
                     </div>
                   </CardContent>
                 </Card>

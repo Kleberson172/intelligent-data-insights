@@ -343,3 +343,151 @@ export function computeAnomaliesFromData(): DetectedAnomaly[] | null {
 
   return anomalies.slice(0, 20);
 }
+
+export interface ForecastPoint {
+  month: string;
+  previsto: number;
+  minimo: number;
+  maximo: number;
+  real: number | null;
+}
+
+export interface ForecastConfidence {
+  accuracy: number;
+  mae: number;
+  rmse: number;
+  r2Score: number;
+  modelName: string;
+  lastTrained: string;
+}
+
+// Agrupa por mês (chave ordenável "YYYY-MM") preservando o rótulo de exibição.
+function buildSortedMonthlySeries(): { key: string; label: string; vendas: number }[] | null {
+  const data = getCsvData();
+  if (!data) return null;
+
+  const { headers, records } = data;
+  const numericCols = detectNumericColumns(headers, records);
+  const dateCol = detectDateColumn(headers);
+  if (!dateCol || numericCols.length === 0) return null;
+
+  const valueCol = numericCols.find(c => /venda|valor|total|receita|revenue|preco/i.test(c)) ?? numericCols[0];
+
+  const map = new Map<string, { label: string; vendas: number }>();
+  for (const r of records) {
+    const raw = r[dateCol];
+    if (!raw) continue;
+    const d = new Date(raw);
+    if (isNaN(d.getTime())) continue;
+
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const label = d.toLocaleDateString("pt-AO", { month: "short", year: "numeric" });
+    const val = parseFloat(String(r[valueCol]).replace(/,/g, ".")) || 0;
+
+    const entry = map.get(key) ?? { label, vendas: 0 };
+    entry.vendas += val;
+    map.set(key, entry);
+  }
+
+  return Array.from(map.entries())
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([key, v]) => ({ key, label: v.label, vendas: v.vendas }));
+}
+
+// Adiciona `months` meses a uma chave "YYYY-MM" e devolve a nova chave + rótulo.
+function addMonths(key: string, months: number): { key: string; label: string } {
+  const [year, month] = key.split("-").map(Number);
+  const d = new Date(year, month - 1 + months, 1);
+  const newKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  const label = d.toLocaleDateString("pt-AO", { month: "short", year: "numeric" });
+  return { key: newKey, label };
+}
+
+// Regressão linear simples (mínimos quadrados) sobre a série mensal real,
+// projetando os próximos meses. A banda min/max usa o desvio-padrão dos
+// resíduos do ajuste histórico como medida de incerteza.
+export function computeForecastFromData(monthsAhead = 6): ForecastPoint[] | null {
+  const series = buildSortedMonthlySeries();
+  if (!series || series.length < 3) return null; // pouco histórico para uma regressão útil
+
+  const n = series.length;
+  const xs = series.map((_, i) => i);
+  const ys = series.map(s => s.vendas);
+
+  const xMean = xs.reduce((a, b) => a + b, 0) / n;
+  const yMean = ys.reduce((a, b) => a + b, 0) / n;
+
+  let num = 0;
+  let den = 0;
+  for (let i = 0; i < n; i++) {
+    num += (xs[i] - xMean) * (ys[i] - yMean);
+    den += (xs[i] - xMean) ** 2;
+  }
+  const slope = den !== 0 ? num / den : 0;
+  const intercept = yMean - slope * xMean;
+
+  const residuals = ys.map((y, i) => y - (slope * xs[i] + intercept));
+  const residualStdDev = Math.sqrt(residuals.reduce((a, r) => a + r ** 2, 0) / n);
+  const band = Math.max(residualStdDev, yMean * 0.05); // banda mínima de 5% para não ficar irrealisticamente estreita
+
+  const points: ForecastPoint[] = series.map((s, i) => ({
+    month: s.label,
+    previsto: Math.round(slope * i + intercept),
+    minimo: Math.round(slope * i + intercept - band),
+    maximo: Math.round(slope * i + intercept + band),
+    real: Math.round(s.vendas),
+  }));
+
+  const lastKey = series[n - 1].key;
+  for (let m = 1; m <= monthsAhead; m++) {
+    const x = n - 1 + m;
+    const { label } = addMonths(lastKey, m);
+    const previsto = slope * x + intercept;
+    points.push({
+      month: label,
+      previsto: Math.round(Math.max(0, previsto)),
+      minimo: Math.round(Math.max(0, previsto - band)),
+      maximo: Math.round(Math.max(0, previsto + band)),
+      real: null,
+    });
+  }
+
+  return points;
+}
+
+export function computeConfidenceFromData(): ForecastConfidence | null {
+  const series = buildSortedMonthlySeries();
+  if (!series || series.length < 3) return null;
+
+  const n = series.length;
+  const xs = series.map((_, i) => i);
+  const ys = series.map(s => s.vendas);
+  const yMean = ys.reduce((a, b) => a + b, 0) / n;
+  const xMean = xs.reduce((a, b) => a + b, 0) / n;
+
+  let num = 0;
+  let den = 0;
+  for (let i = 0; i < n; i++) {
+    num += (xs[i] - xMean) * (ys[i] - yMean);
+    den += (xs[i] - xMean) ** 2;
+  }
+  const slope = den !== 0 ? num / den : 0;
+  const intercept = yMean - slope * xMean;
+
+  const residuals = ys.map((y, i) => y - (slope * xs[i] + intercept));
+  const mae = residuals.reduce((a, r) => a + Math.abs(r), 0) / n;
+  const rmse = Math.sqrt(residuals.reduce((a, r) => a + r ** 2, 0) / n);
+
+  const ssRes = residuals.reduce((a, r) => a + r ** 2, 0);
+  const ssTot = ys.reduce((a, y) => a + (y - yMean) ** 2, 0);
+  const r2Score = ssTot !== 0 ? Math.max(0, 1 - ssRes / ssTot) : 0;
+
+  return {
+    accuracy: Number((r2Score * 100).toFixed(1)),
+    mae: Math.round(mae),
+    rmse: Math.round(rmse),
+    r2Score: Number(r2Score.toFixed(3)),
+    modelName: "ELEVEN Predictive Engine (regressão linear)",
+    lastTrained: new Date().toISOString(),
+  };
+}

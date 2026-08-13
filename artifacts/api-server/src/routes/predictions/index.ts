@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { computeForecastFromData, computeConfidenceFromData } from "../../lib/csv-store";
 
 const router: IRouter = Router();
 
@@ -15,10 +16,20 @@ const forecastData = [
 ];
 
 router.get("/predictions/forecast", async (_req, res): Promise<void> => {
+  const real = computeForecastFromData();
+  if (real && real.length > 0) {
+    res.json(real);
+    return;
+  }
   res.json(forecastData);
 });
 
 router.get("/predictions/confidence", async (_req, res): Promise<void> => {
+  const real = computeConfidenceFromData();
+  if (real) {
+    res.json(real);
+    return;
+  }
   res.json({
     accuracy: 94.7,
     mae: 12400000,
