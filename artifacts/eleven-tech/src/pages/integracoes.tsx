@@ -1,4 +1,13 @@
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  getGetDashboardSummaryQueryKey,
+  getGetSalesDataQueryKey,
+  getGetTopProductsQueryKey,
+  getGetAnomalyStatsQueryKey,
+  getGetSalesForecastQueryKey,
+  getGetPredictionConfidenceQueryKey,
+} from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -110,6 +119,7 @@ export default function Integracoes() {
   const [loadingDataset, setLoadingDataset] = useState(true);
   const [clearingDataset, setClearingDataset] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const queryClient = useQueryClient();
 
   async function fetchDatasetStatus() {
     setLoadingDataset(true);
@@ -129,6 +139,13 @@ export default function Integracoes() {
     try {
       await fetch("/api/data/clear", { method: "DELETE", credentials: "include" });
       await fetchDatasetStatus();
+      // Volta ao dataset de demonstração — atualiza o dashboard sozinho.
+      queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetSalesDataQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetTopProductsQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetAnomalyStatsQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetSalesForecastQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetPredictionConfidenceQueryKey() });
     } finally {
       setClearingDataset(false);
       setShowClearConfirm(false);

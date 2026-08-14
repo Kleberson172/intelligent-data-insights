@@ -3,7 +3,16 @@ import {
   Send, Bot, User, Upload, FileText, CheckCircle2, Paperclip,
   ChevronDown, HelpCircle, Lightbulb, Database, MessageSquare
 } from "lucide-react";
-import { useCreateOpenaiConversation, getGetOpenaiConversationQueryKey } from "@workspace/api-client-react";
+import {
+  useCreateOpenaiConversation,
+  getGetOpenaiConversationQueryKey,
+  getGetDashboardSummaryQueryKey,
+  getGetSalesDataQueryKey,
+  getGetTopProductsQueryKey,
+  getGetAnomalyStatsQueryKey,
+  getGetSalesForecastQueryKey,
+  getGetPredictionConfidenceQueryKey,
+} from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -80,6 +89,15 @@ export function AIChatZone({ onPulse, onMessagesChange }: { onPulse?: () => void
       const data = await res.json();
       if (res.ok) {
         setCsvStatus({ loaded: true, filename: data.filename, rows: data.rows, columns: data.columns });
+        // Os dados carregados substituem o dataset de demonstração — invalida
+        // as queries que dependem dele para a UI atualizar sozinha, sem o
+        // utilizador ter de recarregar a página.
+        queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetSalesDataQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetTopProductsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetAnomalyStatsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetSalesForecastQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetPredictionConfidenceQueryKey() });
         updateMessages(prev => [...prev, {
           id: Date.now().toString(),
           role: "assistant",
@@ -102,7 +120,7 @@ export function AIChatZone({ onPulse, onMessagesChange }: { onPulse?: () => void
     } finally {
       setUploading(false);
     }
-  }, [onPulse, updateMessages]);
+  }, [onPulse, queryClient, updateMessages]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
