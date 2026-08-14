@@ -153,6 +153,10 @@ overrides:
 importers:
 
   .:
+    dependencies:
+      openai:
+        specifier: ^6.37.0
+        version: 6.37.0(zod@4.3.6)
     devDependencies:
       '@rollup/rollup-win32-x64-msvc':
         specifier: ^4.62.3

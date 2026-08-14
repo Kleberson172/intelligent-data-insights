@@ -6,6 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -78,6 +88,14 @@ function formatDate(dateStr?: string) {
   return d.toLocaleString("pt-AO", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 
+interface DatasetStatus {
+  loaded: boolean;
+  filename?: string;
+  rows?: number;
+  columns?: string[];
+  uploadedAt?: string;
+}
+
 export default function Integracoes() {
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,6 +105,39 @@ export default function Integracoes() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
+
+  const [dataset, setDataset] = useState<DatasetStatus | null>(null);
+  const [loadingDataset, setLoadingDataset] = useState(true);
+  const [clearingDataset, setClearingDataset] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+
+  async function fetchDatasetStatus() {
+    setLoadingDataset(true);
+    try {
+      const res = await fetch("/api/data/status", { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json() as DatasetStatus;
+        setDataset(data);
+      }
+    } finally {
+      setLoadingDataset(false);
+    }
+  }
+
+  async function handleClearDataset() {
+    setClearingDataset(true);
+    try {
+      await fetch("/api/data/clear", { method: "DELETE", credentials: "include" });
+      await fetchDatasetStatus();
+    } finally {
+      setClearingDataset(false);
+      setShowClearConfirm(false);
+    }
+  }
+
+  useEffect(() => {
+    void fetchDatasetStatus();
+  }, []);
 
   const [form, setForm] = useState({
     name: "",
@@ -179,6 +230,56 @@ export default function Integracoes() {
             <Plus className="w-4 h-4" /> Nova Conexão
           </Button>
         </div>
+
+        {/* Dataset atual */}
+        <Card className="border-white/10">
+          <CardContent className="p-5">
+            {loadingDataset ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" /> A verificar dataset carregado...
+              </div>
+            ) : dataset?.loaded ? (
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                    <FileSpreadsheet className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-foreground">{dataset.filename}</span>
+                      <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-400 bg-emerald-500/5">
+                        Ativo
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {dataset.rows?.toLocaleString("pt-PT")} linhas · {dataset.columns?.length} colunas · carregado {formatDate(dataset.uploadedAt)}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs bg-background hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 gap-1.5"
+                  onClick={() => setShowClearConfirm(true)}
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Limpar dataset
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
+                  <FileSpreadsheet className="w-5 h-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <span className="font-medium text-foreground">Nenhum dataset carregado</span>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Utilize o assistente de IA no Dashboard para carregar um ficheiro CSV.
+                  </p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Stats bar */}
         <div className="grid grid-cols-3 gap-4">
@@ -477,6 +578,31 @@ export default function Integracoes() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Confirmar limpeza do dataset */}
+      <AlertDialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
+        <AlertDialogContent className="bg-[#111827] border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Limpar dataset carregado?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O ficheiro "{dataset?.filename}" e os seus dados serão removidos. O Dashboard, Anomalias e
+              Predições voltarão a mostrar dados de demonstração até um novo CSV ser carregado. Esta ação
+              não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={clearingDataset}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleClearDataset}
+              disabled={clearingDataset}
+              className="bg-red-500 hover:bg-red-400 text-white"
+            >
+              {clearingDataset ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Limpar dataset
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }
