@@ -1,12 +1,26 @@
-﻿process.env.AI_INTEGRATIONS_OPENAI_API_KEY = "AIzaSyCMB0uPvAUAHSFIqIn7XpD6tNAqF0InRyk";
-process.env.AI_INTEGRATIONS_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/";
+// Antes de correr este script, defina as variáveis de ambiente:
+//   Windows (PowerShell):
+//     $env:AI_INTEGRATIONS_OPENAI_API_KEY="a-sua-chave"
+//     $env:AI_INTEGRATIONS_OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
+//   Mac/Linux:
+//     export AI_INTEGRATIONS_OPENAI_API_KEY="a-sua-chave"
+//     export AI_INTEGRATIONS_OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
+//
+// NUNCA escreva a chave diretamente neste ficheiro - o repositório é público.
 
 import OpenAI from "openai";
 
-const client = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
+const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+
+if (!apiKey || !baseURL) {
+  console.error(
+    "ERRO: defina AI_INTEGRATIONS_OPENAI_API_KEY e AI_INTEGRATIONS_OPENAI_BASE_URL nas variaveis de ambiente antes de correr este script."
+  );
+  process.exit(1);
+}
+
+const client = new OpenAI({ apiKey, baseURL });
 
 try {
   const res = await client.chat.completions.create({
