@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { build as esbuild } from "esbuild";
 import esbuildPluginPino from "esbuild-plugin-pino";
-import { rm } from "node:fs/promises";
+import { rm, copyFile } from "node:fs/promises";
 
 // Plugins (e.g. 'esbuild-plugin-pino') may use `require` to resolve dependencies
 globalThis.require = createRequire(import.meta.url);
@@ -33,6 +33,7 @@ async function buildAll() {
       "better-sqlite3",
       "sqlite3",
       "canvas",
+      "@napi-rs/canvas",
       "bcrypt",
       "argon2",
       "fsevents",
@@ -118,6 +119,21 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
     `,
     },
   });
+
+  // O pdf-parse (via pdfjs-dist) carrega um "worker" separado em tempo de
+  // execução, resolvido como um caminho relativo ao próprio módulo. O
+  // esbuild não empacota este ficheiro automaticamente (é carregado
+  // dinamicamente, não via import estático), por isso copiamo-lo à mão
+  // para o dist/, mesmo diretório do index.mjs, onde o pdf-parse o procura.
+  // O package.json do pdf-parse restringe subpaths via "exports", por isso
+  // resolvemos o ficheiro principal e navegamos a partir daí (a build ESM
+  // é uma pasta irmã da build CJS que o require.resolve nos dá).
+  const pdfParseMainPath = createRequire(import.meta.url).resolve("pdf-parse");
+  const pdfWorkerSrc = path.resolve(
+    path.dirname(pdfParseMainPath),
+    "../esm/pdf.worker.mjs",
+  );
+  await copyFile(pdfWorkerSrc, path.join(distDir, "pdf.worker.mjs"));
 }
 
 buildAll().catch((err) => {

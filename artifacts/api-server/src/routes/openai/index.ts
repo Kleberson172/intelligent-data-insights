@@ -11,6 +11,7 @@ import {
   SendOpenaiMessageBody,
 } from "@workspace/api-zod";
 import { getCsvData } from "../../lib/csv-store";
+import { getDocument } from "../../lib/document-store";
 
 const router: IRouter = Router();
 
@@ -31,16 +32,33 @@ REGRAS OBRIGATÓRIAS:
 
 function buildSystemPrompt(): string {
   const csv = getCsvData();
-  if (!csv) return BASE_SYSTEM_PROMPT;
+  const doc = getDocument();
 
-  return `${BASE_SYSTEM_PROMPT}
+  let prompt = BASE_SYSTEM_PROMPT;
+
+  if (csv) {
+    prompt += `
 
 ======= DADOS REAIS CARREGADOS PELO UTILIZADOR =======
-O utilizador carregou um ficheiro CSV personalizado. Utilize estes dados reais para as análises:
+O utilizador carregou um ficheiro personalizado com dados tabulares. Utilize estes dados reais para as análises:
 
 ${csv.summary}
 
 INSTRUÇÕES: Ao responder perguntas sobre dados, use SEMPRE os dados reais carregados acima em vez do dataset padrão. Mencione o nome do ficheiro "${csv.filename}" quando relevante.`;
+  }
+
+  if (doc) {
+    prompt += `
+
+======= DOCUMENTO CARREGADO PELO UTILIZADOR (SEM TABELA) =======
+O utilizador carregou o ficheiro "${doc.filename}", que não contém uma tabela de dados. Aqui está o conteúdo extraído${doc.truncated ? " (truncado por ser muito longo)" : ""}:
+
+${doc.textContent}
+
+INSTRUÇÕES: Responda a perguntas sobre este documento com base no conteúdo acima. Este documento não alimenta o dashboard nem as métricas — é apenas contexto para conversa.`;
+  }
+
+  return prompt;
 }
 
 router.get("/openai/conversations", async (req, res): Promise<void> => {

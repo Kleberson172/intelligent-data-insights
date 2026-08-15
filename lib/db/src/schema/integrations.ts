@@ -13,8 +13,13 @@ export const integrationsTable = pgTable("integrations", {
   password: text("password"),
   apiKey: text("api_key"),
   apiUrl: text("api_url"),
+  // Consulta SQL usada para importar dados (tipo "postgresql"). Deve
+  // devolver linhas que representem os dados de negócio a analisar
+  // (ex: "SELECT * FROM vendas LIMIT 5000").
+  query: text("query"),
   isActive: boolean("is_active").notNull().default(false),
   lastTestedAt: timestamp("last_tested_at"),
+  lastImportedAt: timestamp("last_imported_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

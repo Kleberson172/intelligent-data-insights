@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   AlertDialog,
@@ -46,6 +47,7 @@ import {
   WifiOff,
   Eye,
   EyeOff,
+  DownloadCloud,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -60,8 +62,10 @@ interface Integration {
   password?: string;
   apiKey?: string;
   apiUrl?: string;
+  query?: string;
   isActive: boolean;
   lastTestedAt?: string;
+  lastImportedAt?: string;
   createdAt: string;
 }
 
@@ -166,8 +170,11 @@ export default function Integracoes() {
     password: "",
     apiKey: "",
     apiUrl: "",
+    query: "",
   });
   const [saving, setSaving] = useState(false);
+  const [importingId, setImportingId] = useState<number | null>(null);
+  const [importResult, setImportResult] = useState<{ id: number; success: boolean; message: string } | null>(null);
 
   async function fetchIntegrations() {
     try {
@@ -198,7 +205,7 @@ export default function Integracoes() {
         const row = await res.json() as Integration;
         setIntegrations((prev) => [...prev, row]);
         setShowAdd(false);
-        setForm({ name: "", type: "postgresql", host: "", port: "5432", database: "", username: "", password: "", apiKey: "", apiUrl: "" });
+        setForm({ name: "", type: "postgresql", host: "", port: "5432", database: "", username: "", password: "", apiKey: "", apiUrl: "", query: "" });
       }
     } finally {
       setSaving(false);
@@ -218,6 +225,37 @@ export default function Integracoes() {
       await fetchIntegrations();
     } finally {
       setTestingId(null);
+    }
+  }
+
+  async function handleImport(id: number) {
+    setImportingId(id);
+    setImportResult(null);
+    try {
+      const res = await fetch(`/api/integrations/${id}/import`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json() as { success?: boolean; rows?: number; columns?: string[]; error?: string };
+      if (res.ok && data.success) {
+        setImportResult({ id, success: true, message: `Importados ${data.rows?.toLocaleString("pt-PT")} registos, ${data.columns?.length} colunas.` });
+        await fetchIntegrations();
+        await fetchDatasetStatus();
+        // Os dados importados substituem o dataset atual — atualiza o
+        // dashboard/predições/anomalias sozinho, sem recarregar a página.
+        queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetSalesDataQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetTopProductsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetAnomalyStatsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetSalesForecastQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetPredictionConfidenceQueryKey() });
+      } else {
+        setImportResult({ id, success: false, message: data.error ?? "Falha ao importar dados." });
+      }
+    } catch {
+      setImportResult({ id, success: false, message: "Erro de ligação ao servidor." });
+    } finally {
+      setImportingId(null);
     }
   }
 
@@ -336,6 +374,9 @@ export default function Integracoes() {
                 const isTesting = testingId === integration.id;
                 const isDeleting = deletingId === integration.id;
                 const result = testResult?.id === integration.id ? testResult : null;
+                const isImporting = importingId === integration.id;
+                const importRes = importResult?.id === integration.id ? importResult : null;
+                const canImport = integration.type === "postgresql" || integration.type === "api";
 
                 return (
                   <motion.div
@@ -409,6 +450,12 @@ export default function Integracoes() {
                             <span className="text-muted-foreground">Último teste</span>
                             <span className="text-foreground">{formatDate(integration.lastTestedAt)}</span>
                           </div>
+                          {canImport && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Última importação</span>
+                              <span className="text-foreground">{formatDate(integration.lastImportedAt)}</span>
+                            </div>
+                          )}
                         </div>
 
                         {/* Test result */}
@@ -426,6 +473,21 @@ export default function Integracoes() {
                           )}
                         </AnimatePresence>
 
+                        {/* Import result */}
+                        <AnimatePresence>
+                          {importRes && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              className={`flex items-start gap-2 p-2 rounded-lg text-xs ${importRes.success ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"}`}
+                            >
+                              {importRes.success ? <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 shrink-0" /> : <XCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />}
+                              {importRes.message}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
                         {/* Actions */}
                         <div className="flex gap-2 pt-1">
                           <Button
@@ -438,6 +500,18 @@ export default function Integracoes() {
                             {isTesting ? <Loader2 className="w-3 h-3 animate-spin" /> : <TestTube className="w-3 h-3" />}
                             Testar
                           </Button>
+                          {canImport && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 h-8 text-xs bg-background hover:bg-cyan-500/10 hover:border-cyan-500/30 hover:text-cyan-400 gap-1.5"
+                              disabled={isImporting}
+                              onClick={() => handleImport(integration.id)}
+                            >
+                              {isImporting ? <Loader2 className="w-3 h-3 animate-spin" /> : <DownloadCloud className="w-3 h-3" />}
+                              Importar
+                            </Button>
+                          )}
                           <Button
                             variant="outline"
                             size="sm"
@@ -541,6 +615,18 @@ export default function Integracoes() {
                     </div>
                   </div>
                 </div>
+                <div className="space-y-1.5">
+                  <Label>Consulta SQL</Label>
+                  <Textarea
+                    placeholder="SELECT data, provincia, produto, vendas FROM vendas LIMIT 5000"
+                    value={form.query}
+                    onChange={(e) => setForm((f) => ({ ...f, query: e.target.value }))}
+                    className="bg-background border-white/10 font-mono text-xs min-h-20"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Os dados devolvidos por esta consulta alimentam o dashboard e o Agente de IA, tal como um ficheiro CSV.
+                  </p>
+                </div>
               </>
             )}
 
@@ -569,6 +655,9 @@ export default function Integracoes() {
                     </button>
                   </div>
                 </div>
+                <p className="text-[11px] text-muted-foreground">
+                  A API deve devolver um array de registos (diretamente ou dentro de um campo como "data" ou "results"). Esses registos alimentam o dashboard e o Agente de IA.
+                </p>
               </>
             )}
 

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Send, Bot, User, Upload, FileText, CheckCircle2, Paperclip,
-  ChevronDown, HelpCircle, Lightbulb, Database, MessageSquare
+  ChevronDown, HelpCircle, Lightbulb, Database, MessageSquare, Trash2
 } from "lucide-react";
 import {
   useCreateOpenaiConversation,
@@ -119,11 +119,13 @@ export function AIChatZone({ onPulse, onMessagesChange }: { onPulse?: () => void
   }, [messages, isTyping]);
 
   const handleFileUpload = useCallback(async (file: File) => {
-    if (!file.name.toLowerCase().endsWith(".csv")) {
+    const validExtensions = [".csv", ".xlsx", ".xls", ".docx", ".pdf", ".jpg", ".jpeg", ".png", ".webp"];
+    const lowerName = file.name.toLowerCase();
+    if (!validExtensions.some(ext => lowerName.endsWith(ext))) {
       updateMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: "assistant",
-        content: "⚠️ Por favor selecione um ficheiro no formato CSV.",
+        content: "⚠️ Formato não suportado. Envie um ficheiro CSV, Excel, Word, PDF ou uma foto (JPG/PNG).",
       }]);
       return;
     }
@@ -133,7 +135,7 @@ export function AIChatZone({ onPulse, onMessagesChange }: { onPulse?: () => void
     try {
       const res = await fetch("/api/data/upload", { method: "POST", body: form });
       const data = await res.json();
-      if (res.ok) {
+      if (res.ok && data.type === "dataset") {
         setCsvStatus({ loaded: true, filename: data.filename, rows: data.rows, columns: data.columns });
         // Os dados carregados substituem o dataset de demonstração — invalida
         // as queries que dependem dele para a UI atualizar sozinha, sem o
@@ -150,11 +152,18 @@ export function AIChatZone({ onPulse, onMessagesChange }: { onPulse?: () => void
           content: `✅ Ficheiro **${data.filename}** carregado com sucesso!\n\n📊 **${data.rows.toLocaleString("pt-PT")} registos** · **${data.columns.length} colunas**\nColunas: ${data.columns.slice(0, 6).join(", ")}${data.columns.length > 6 ? "…" : ""}\n\nAgora posso analisar os seus dados reais. Que análise pretende?`,
         }]);
         onPulse?.();
+      } else if (res.ok && data.type === "document") {
+        updateMessages(prev => [...prev, {
+          id: Date.now().toString(),
+          role: "assistant",
+          content: `📄 Ficheiro **${data.filename}** carregado com sucesso!\n\nEste ficheiro não contém uma tabela de dados, por isso não altera o dashboard — mas já posso responder perguntas sobre o seu conteúdo.\n\n> ${data.preview}${data.preview?.length >= 300 ? "…" : ""}`,
+        }]);
+        onPulse?.();
       } else {
         updateMessages(prev => [...prev, {
           id: Date.now().toString(),
           role: "assistant",
-          content: `❌ Erro ao carregar ficheiro: ${data.error ?? "formato inválido"}.\n\nVerifique se o ficheiro está no formato CSV correcto (separador vírgula ou ponto-e-vírgula).`,
+          content: `❌ Erro ao carregar ficheiro: ${data.error ?? "formato inválido"}.`,
         }]);
       }
     } catch {
@@ -167,6 +176,13 @@ export function AIChatZone({ onPulse, onMessagesChange }: { onPulse?: () => void
       setUploading(false);
     }
   }, [onPulse, queryClient, updateMessages]);
+
+  const handleClearConversation = useCallback(() => {
+    updateMessages(() => []);
+    setConversationId(null);
+    // O useEffect que observa conversationId já remove a entrada do
+    // sessionStorage quando este passa a null.
+  }, [updateMessages]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -279,7 +295,7 @@ export function AIChatZone({ onPulse, onMessagesChange }: { onPulse?: () => void
           </div>
           <div>
             <div className="text-sm font-bold text-white leading-none">Agente de IA — ELEVEN</div>
-            <div className="text-[10px] text-gray-500 mt-0.5">Responde em português · Analisa dados CSV</div>
+            <div className="text-[10px] text-gray-500 mt-0.5">Responde em português · Analisa CSV, Excel, Word, PDF e fotos</div>
           </div>
         </div>
 
@@ -301,15 +317,24 @@ export function AIChatZone({ onPulse, onMessagesChange }: { onPulse?: () => void
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/15 transition-colors text-[10px] font-medium disabled:opacity-50"
           >
             <Upload className="w-3 h-3" />
-            {uploading ? "A carregar…" : "CSV"}
+            {uploading ? "A carregar…" : "Carregar"}
           </button>
           <input
             ref={fileInputRef}
             type="file"
-            accept=".csv"
+            accept=".csv,.xlsx,.xls,.docx,.pdf,.jpg,.jpeg,.png,.webp"
             className="hidden"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileUpload(f); e.target.value = ""; }}
           />
+          {messages.length > 0 && (
+            <button
+              onClick={handleClearConversation}
+              className="w-7 h-7 rounded-lg flex items-center justify-center bg-white/5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+              title="Limpar conversa"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
           <button
             onClick={() => setShowGuide(g => !g)}
             className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${showGuide ? "bg-indigo-500/20 text-indigo-300" : "bg-white/5 text-gray-500 hover:text-gray-300"}`}
@@ -351,7 +376,7 @@ export function AIChatZone({ onPulse, onMessagesChange }: { onPulse?: () => void
                   </div>
                   <div>
                     <p className="text-[11px] font-semibold text-white mb-0.5">2. Carregue os seus dados</p>
-                    <p className="text-[10px] text-gray-500">Arraste um ficheiro CSV aqui ou clique em "CSV". O agente analisa os seus dados reais.</p>
+                    <p className="text-[10px] text-gray-500">Arraste um ficheiro (CSV, Excel, Word, PDF ou foto) ou clique em "Carregar". O agente analisa os seus dados reais.</p>
                   </div>
                 </div>
                 <div className="flex gap-2.5 items-start">
@@ -412,7 +437,7 @@ export function AIChatZone({ onPulse, onMessagesChange }: { onPulse?: () => void
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <Upload className="w-4 h-4 text-gray-600 mx-auto mb-1" />
-                  <p className="text-[10px] text-gray-600">Arraste o seu ficheiro CSV aqui para análise dos seus dados reais</p>
+                  <p className="text-[10px] text-gray-600">Arraste um ficheiro (CSV, Excel, Word, PDF ou foto) aqui para análise</p>
                 </div>
               )}
             </motion.div>
@@ -473,7 +498,7 @@ export function AIChatZone({ onPulse, onMessagesChange }: { onPulse?: () => void
           <div className="absolute inset-0 bg-cyan-500/5 border-2 border-dashed border-cyan-400/50 rounded-2xl flex items-center justify-center pointer-events-none z-10">
             <div className="text-cyan-400 text-sm font-medium flex items-center gap-2">
               <Upload className="w-5 h-5" />
-              Solte o ficheiro CSV aqui
+              Solte o ficheiro aqui
             </div>
           </div>
         )}
@@ -486,7 +511,7 @@ export function AIChatZone({ onPulse, onMessagesChange }: { onPulse?: () => void
             type="button"
             onClick={() => fileInputRef.current?.click()}
             className="w-9 h-9 flex-shrink-0 rounded-xl bg-white/5 border border-white/8 flex items-center justify-center text-gray-500 hover:text-cyan-400 hover:border-cyan-500/30 hover:bg-cyan-500/5 transition-all"
-            title="Carregar CSV"
+            title="Carregar ficheiro"
           >
             <Paperclip className="w-4 h-4" />
           </button>
