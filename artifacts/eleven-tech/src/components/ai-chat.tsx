@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import {
   useCreateOpenaiConversation,
+  useGetOpenaiConversation,
   getGetOpenaiConversationQueryKey,
   getGetDashboardSummaryQueryKey,
   getGetSalesDataQueryKey,
@@ -39,11 +40,23 @@ const SUGESTOES = [
   { cat: "💡 Insight", q: "Dá-me um resumo executivo dos dados" },
 ];
 
+// Guardamos o id da conversa aqui para sobreviver a navegação entre páginas
+// (o componente desmonta ao sair do Dashboard, o que apagaria o estado
+// local). Ao voltar, lemos este id e recarregamos as mensagens do servidor.
+const CONVERSATION_ID_STORAGE_KEY = "eleven-tech:ai-chat-conversation-id";
+
+function readStoredConversationId(): number | null {
+  if (typeof window === "undefined") return null;
+  const raw = window.sessionStorage.getItem(CONVERSATION_ID_STORAGE_KEY);
+  const parsed = raw ? Number(raw) : NaN;
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 export function AIChatZone({ onPulse, onMessagesChange }: { onPulse?: () => void; onMessagesChange?: (msgs: Message[]) => void }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [conversationId, setConversationId] = useState<number | null>(null);
+  const [conversationId, setConversationId] = useState<number | null>(() => readStoredConversationId());
   const [csvStatus, setCsvStatus] = useState<CsvStatus>({ loaded: false });
   const [uploading, setUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -61,6 +74,39 @@ export function AIChatZone({ onPulse, onMessagesChange }: { onPulse?: () => void
   const queryClient = useQueryClient();
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Recarrega o histórico da conversa guardada, se o componente remontou
+  // (ex: o utilizador navegou para outra página e voltou ao Dashboard).
+  const existingConversation = useGetOpenaiConversation(conversationId ?? 0, {
+    query: {
+      queryKey: getGetOpenaiConversationQueryKey(conversationId ?? 0),
+      enabled: !!conversationId && messages.length === 0,
+    },
+  });
+
+  useEffect(() => {
+    if (existingConversation.data?.messages) {
+      updateMessages(() =>
+        existingConversation.data.messages.map(m => ({
+          id: String(m.id),
+          role: m.role === "user" ? "user" : "assistant",
+          content: m.content,
+        }))
+      );
+    }
+    // Só corre quando os dados chegam pela primeira vez; updateMessages não
+    // deve disparar isto de novo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existingConversation.data]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (conversationId) {
+      window.sessionStorage.setItem(CONVERSATION_ID_STORAGE_KEY, String(conversationId));
+    } else {
+      window.sessionStorage.removeItem(CONVERSATION_ID_STORAGE_KEY);
+    }
+  }, [conversationId]);
 
   useEffect(() => {
     fetch("/api/data/status").then(r => r.json()).then(setCsvStatus).catch(() => {});
