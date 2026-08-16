@@ -1,7 +1,10 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import multer from "multer";
 import { parse } from "csv-parse/sync";
-import { storeCsvData, getCsvData, hasCsvData, clearCsvData } from "../../lib/csv-store";
+import {
+  storeCsvData, getCsvData, hasCsvData, clearCsvData,
+  listDatasetHistory, computeMetricsForDatasetId, activateDataset,
+} from "../../lib/csv-store";
 import { storeDocument, getDocument, hasDocument, clearDocument } from "../../lib/document-store";
 import { extractExcel, extractWord, extractPdf, extractImage, type ExtractionResult } from "../../lib/file-extractors";
 
@@ -178,6 +181,56 @@ router.delete("/data/clear", async (_req: Request, res: Response): Promise<void>
   await clearCsvData();
   clearDocument();
   res.json({ success: true });
+});
+
+router.get("/data/history", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const history = await listDatasetHistory();
+    res.json(history);
+  } catch (err) {
+    req.log.error({ err }, "Falha ao listar histórico de datasets");
+    res.status(500).json({ error: "Erro ao listar histórico." });
+  }
+});
+
+router.post("/data/history/:id/activate", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const result = await activateDataset(req.params["id"] as string);
+    if (!result) {
+      res.status(404).json({ error: "Dataset não encontrado." });
+      return;
+    }
+    res.json(result);
+  } catch (err) {
+    req.log.error({ err }, "Falha ao ativar dataset do histórico");
+    res.status(500).json({ error: "Erro ao ativar dataset." });
+  }
+});
+
+router.get("/data/history/compare", async (req: Request, res: Response): Promise<void> => {
+  const a = req.query["a"] as string | undefined;
+  const b = req.query["b"] as string | undefined;
+  if (!a || !b) {
+    res.status(400).json({ error: "É preciso indicar dois datasets para comparar (parâmetros \"a\" e \"b\")." });
+    return;
+  }
+
+  try {
+    const [metricsA, metricsB] = await Promise.all([
+      computeMetricsForDatasetId(a),
+      computeMetricsForDatasetId(b),
+    ]);
+
+    if (!metricsA || !metricsB) {
+      res.status(400).json({ error: "Não foi possível calcular métricas para um dos datasets (verifique se ainda existem no histórico)." });
+      return;
+    }
+
+    res.json({ a: metricsA, b: metricsB });
+  } catch (err) {
+    req.log.error({ err }, "Falha ao comparar datasets");
+    res.status(500).json({ error: "Erro ao comparar datasets." });
+  }
 });
 
 export default router;

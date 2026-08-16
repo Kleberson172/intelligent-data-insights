@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { DatasetHistoryCard } from "@/components/dataset-history";
 import {
   getGetDashboardSummaryQueryKey,
   getGetSalesDataQueryKey,
@@ -342,6 +343,8 @@ export default function Integracoes() {
             )}
           </CardContent>
         </Card>
+
+        <DatasetHistoryCard />
 
         {/* Stats bar */}
         <div className="grid grid-cols-3 gap-4">

@@ -85,15 +85,18 @@ function buildDatasetInfo(filename: string, headers: string[], records: DataReco
   };
 }
 
+// Quantos datasets anteriores mantemos no histórico, além do atual. Evita
+// crescimento sem limite da base de dados ao longo do tempo.
+const HISTORY_RETENTION = 10;
+
 // Grava em memória (para as rotas síncronas que já existem) e persiste no
 // Postgres em segundo plano, para sobreviver a reinícios do servidor.
+// Datasets anteriores NÃO são apagados — ficam no histórico (até ao limite
+// de retenção), para se poder comparar períodos ou voltar atrás.
 export async function storeCsvData(filename: string, headers: string[], records: DataRecord[]): Promise<void> {
   store.set(GLOBAL_KEY, buildDatasetInfo(filename, headers, records));
 
   try {
-    // Por agora só suportamos um dataset ativo por vez — limpa o anterior.
-    await db.delete(datasetsTable);
-
     const [dataset] = await db
       .insert(datasetsTable)
       .values({ filename, columns: headers, rowCount: records.length })
@@ -111,11 +114,94 @@ export async function storeCsvData(filename: string, headers: string[], records:
         await db.insert(datasetRowsTable).values(rows.slice(i, i + BATCH_SIZE));
       }
     }
+
+    await pruneOldDatasets();
   } catch (err) {
     // A persistência é "best effort": se falhar, os dados continuam
     // disponíveis em memória para a sessão atual.
     console.error("Falha ao persistir dataset no Postgres:", err);
   }
+}
+
+// Apaga datasets mais antigos do que o limite de retenção (as suas linhas
+// em dataset_rows são removidas em cascata, pelo "onDelete: cascade").
+async function pruneOldDatasets(): Promise<void> {
+  const all = await db
+    .select({ id: datasetsTable.id })
+    .from(datasetsTable)
+    .orderBy(desc(datasetsTable.uploadedAt));
+
+  const toDelete = all.slice(HISTORY_RETENTION);
+  for (const d of toDelete) {
+    await db.delete(datasetsTable).where(sql`${datasetsTable.id} = ${d.id}`);
+  }
+}
+
+export interface DatasetHistoryItem {
+  id: string;
+  filename: string;
+  rowCount: number;
+  uploadedAt: Date;
+  isActive: boolean;
+}
+
+// Lista os datasets guardados (mais recente primeiro). O mais recente é
+// sempre o "ativo" — o que alimenta o dashboard, predições, anomalias e o
+// Agente de IA neste momento.
+export async function listDatasetHistory(): Promise<DatasetHistoryItem[]> {
+  const rows = await db
+    .select()
+    .from(datasetsTable)
+    .orderBy(desc(datasetsTable.uploadedAt));
+
+  return rows.map((r, i) => ({
+    id: r.id,
+    filename: r.filename,
+    rowCount: r.rowCount,
+    uploadedAt: r.uploadedAt,
+    isActive: i === 0,
+  }));
+}
+
+// Calcula as mesmas métricas do dashboard, mas para um dataset específico
+// do histórico (não necessariamente o ativo). Usado para comparar períodos.
+export async function computeMetricsForDatasetId(datasetId: string): Promise<DashboardMetrics | null> {
+  const [dataset] = await db.select().from(datasetsTable).where(sql`${datasetsTable.id} = ${datasetId}`);
+  if (!dataset) return null;
+
+  const rows = await db
+    .select()
+    .from(datasetRowsTable)
+    .where(sql`${datasetRowsTable.datasetId} = ${datasetId}`)
+    .orderBy(datasetRowsTable.rowIndex);
+
+  const records = rows.map(r => r.data);
+  return computeMetricsForRecords(dataset.columns, records);
+}
+
+// Torna um dataset do histórico o "ativo" outra vez — útil para voltar a
+// um período anterior. Como o mais recente é sempre considerado o ativo,
+// isto funciona atualizando a data de upload para agora (sobe ao topo da
+// lista), sem duplicar os dados.
+export async function activateDataset(datasetId: string): Promise<DatasetHistoryItem | null> {
+  const [dataset] = await db.select().from(datasetsTable).where(sql`${datasetsTable.id} = ${datasetId}`);
+  if (!dataset) return null;
+
+  await db
+    .update(datasetsTable)
+    .set({ uploadedAt: new Date() })
+    .where(sql`${datasetsTable.id} = ${datasetId}`);
+
+  const rows = await db
+    .select()
+    .from(datasetRowsTable)
+    .where(sql`${datasetRowsTable.datasetId} = ${datasetId}`)
+    .orderBy(datasetRowsTable.rowIndex);
+
+  const records = rows.map(r => r.data);
+  store.set(GLOBAL_KEY, buildDatasetInfo(dataset.filename, dataset.columns, records));
+
+  return { id: dataset.id, filename: dataset.filename, rowCount: records.length, uploadedAt: new Date(), isActive: true };
 }
 
 // Recarrega o último dataset guardado no Postgres para a memória.
@@ -174,11 +260,7 @@ export interface DashboardMetrics {
   byCategory: { categoria: string; valor: number; percentagem: number }[];
 }
 
-export function computeDashboardFromData(): DashboardMetrics | null {
-  const data = getCsvData();
-  if (!data) return null;
-
-  const { headers, records } = data;
+export function computeMetricsForRecords(headers: string[], records: DataRecord[]): DashboardMetrics | null {
   const numericCols = detectNumericColumns(headers, records);
   const dateCol = detectDateColumn(headers);
   const categoryCol = detectCategoryColumn(headers, numericCols);
@@ -235,6 +317,12 @@ export function computeDashboardFromData(): DashboardMetrics | null {
     monthlySeries,
     byCategory,
   };
+}
+
+export function computeDashboardFromData(): DashboardMetrics | null {
+  const data = getCsvData();
+  if (!data) return null;
+  return computeMetricsForRecords(data.headers, data.records);
 }
 
 export interface CategoryBreakdown {
