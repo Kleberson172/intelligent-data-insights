@@ -10,7 +10,7 @@ import {
   SendOpenaiMessageParams,
   SendOpenaiMessageBody,
 } from "@workspace/api-zod";
-import { getCsvData } from "../../lib/csv-store";
+import { getCsvData, computeCategoryBreakdowns, computeCrossBreakdowns } from "../../lib/csv-store";
 import { getDocument } from "../../lib/document-store";
 
 const router: IRouter = Router();
@@ -37,14 +37,39 @@ function buildSystemPrompt(): string {
   let prompt = BASE_SYSTEM_PROMPT;
 
   if (csv) {
+    const breakdowns = computeCategoryBreakdowns();
+    const crossBreakdowns = computeCrossBreakdowns();
+
+    let breakdownText = "";
+    if (breakdowns.length > 0) {
+      breakdownText += `\n\nTOTAIS EXATOS POR CATEGORIA (calculados sobre TODOS os ${csv.records.length} registos, não é uma amostra):\n`;
+      for (const b of breakdowns) {
+        breakdownText += `\n${b.column} (somando "${b.valueColumn}"):\n`;
+        for (const item of b.top) {
+          breakdownText += `  - ${item.value}: ${item.total.toLocaleString("pt-PT")} (${item.count} registos)\n`;
+        }
+      }
+    }
+    if (crossBreakdowns.length > 0) {
+      breakdownText += `\nCRUZAMENTOS EXATOS ENTRE CATEGORIAS (útil para perguntas com dois filtros, ex: "qual X mais vendeu em Y"):\n`;
+      for (const c of crossBreakdowns) {
+        breakdownText += `\n${c.columnA} × ${c.columnB} (somando "${c.valueColumn}"):\n`;
+        for (const group of c.groups) {
+          const topStr = group.top.map(t => `${t.b}: ${t.total.toLocaleString("pt-PT")}`).join(", ");
+          breakdownText += `  - ${c.columnA}="${group.a}" → ${topStr}\n`;
+        }
+      }
+    }
+
     prompt += `
 
 ======= DADOS REAIS CARREGADOS PELO UTILIZADOR =======
 O utilizador carregou um ficheiro personalizado com dados tabulares. Utilize estes dados reais para as análises:
 
 ${csv.summary}
+${breakdownText}
 
-INSTRUÇÕES: Ao responder perguntas sobre dados, use SEMPRE os dados reais carregados acima em vez do dataset padrão. Mencione o nome do ficheiro "${csv.filename}" quando relevante.`;
+INSTRUÇÕES: Ao responder perguntas sobre dados, use SEMPRE os dados reais carregados acima em vez do dataset padrão. Mencione o nome do ficheiro "${csv.filename}" quando relevante. Para perguntas do tipo "qual X teve mais/menos Y" (ex: "qual província vendeu mais", "qual funcionário se destacou"), use SEMPRE os TOTAIS EXATOS e CRUZAMENTOS acima, que já estão calculados sobre todos os registos — NUNCA estime ou calcule a partir da amostra de 5 registos, que é só ilustrativa. Se a pergunta precisar de um cruzamento que não está disponível acima, diga isso claramente em vez de adivinhar.`;
   }
 
   if (doc) {

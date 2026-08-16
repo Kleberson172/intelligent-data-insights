@@ -15,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,6 +50,7 @@ import {
   Eye,
   EyeOff,
   DownloadCloud,
+  RefreshCw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -63,6 +66,8 @@ interface Integration {
   apiKey?: string;
   apiUrl?: string;
   query?: string;
+  autoRefreshEnabled: boolean;
+  refreshIntervalMinutes?: number;
   isActive: boolean;
   lastTestedAt?: string;
   lastImportedAt?: string;
@@ -171,6 +176,8 @@ export default function Integracoes() {
     apiKey: "",
     apiUrl: "",
     query: "",
+    autoRefreshEnabled: false,
+    refreshIntervalMinutes: 360, // 6 horas por defeito
   });
   const [saving, setSaving] = useState(false);
   const [importingId, setImportingId] = useState<number | null>(null);
@@ -205,7 +212,7 @@ export default function Integracoes() {
         const row = await res.json() as Integration;
         setIntegrations((prev) => [...prev, row]);
         setShowAdd(false);
-        setForm({ name: "", type: "postgresql", host: "", port: "5432", database: "", username: "", password: "", apiKey: "", apiUrl: "", query: "" });
+        setForm({ name: "", type: "postgresql", host: "", port: "5432", database: "", username: "", password: "", apiKey: "", apiUrl: "", query: "", autoRefreshEnabled: false, refreshIntervalMinutes: 360 });
       }
     } finally {
       setSaving(false);
@@ -456,6 +463,17 @@ export default function Integracoes() {
                               <span className="text-foreground">{formatDate(integration.lastImportedAt)}</span>
                             </div>
                           )}
+                          {canImport && integration.autoRefreshEnabled && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-muted-foreground">Atualização automática</span>
+                              <span className="text-cyan-400 flex items-center gap-1">
+                                <RefreshCw className="w-3 h-3" />
+                                {integration.refreshIntervalMinutes === 60 ? "A cada hora"
+                                  : integration.refreshIntervalMinutes === 1440 ? "Diariamente"
+                                  : `A cada ${Math.round((integration.refreshIntervalMinutes ?? 0) / 60)}h`}
+                              </span>
+                            </div>
+                          )}
                         </div>
 
                         {/* Test result */}
@@ -534,7 +552,7 @@ export default function Integracoes() {
 
       {/* Add Integration Dialog */}
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
-        <DialogContent className="max-w-md bg-[#111827] border-white/10">
+        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto bg-[#111827] border-white/10">
           <DialogHeader>
             <DialogTitle>Nova Conexão</DialogTitle>
           </DialogHeader>
@@ -665,6 +683,43 @@ export default function Integracoes() {
               <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4 text-sm text-emerald-400 text-center">
                 <FileSpreadsheet className="w-6 h-6 mx-auto mb-2" />
                 Utilize o assistente de IA no Dashboard para carregar ficheiros CSV diretamente.
+              </div>
+            )}
+
+            {(form.type === "postgresql" || form.type === "api") && (
+              <div className="space-y-3 rounded-xl border border-white/10 bg-background/50 p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="flex items-center gap-1.5">
+                      <RefreshCw className="w-3.5 h-3.5" /> Atualização automática
+                    </Label>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Importa os dados sozinho, sem precisar de clicar em "Importar".
+                    </p>
+                  </div>
+                  <Switch
+                    checked={form.autoRefreshEnabled}
+                    onCheckedChange={(checked) => setForm((f) => ({ ...f, autoRefreshEnabled: checked }))}
+                  />
+                </div>
+                {form.autoRefreshEnabled && (
+                  <div className="space-y-1.5">
+                    <Label>Frequência</Label>
+                    <Select
+                      value={String(form.refreshIntervalMinutes)}
+                      onValueChange={(v) => setForm((f) => ({ ...f, refreshIntervalMinutes: Number(v) }))}
+                    >
+                      <SelectTrigger className="bg-background border-white/10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="60">A cada hora</SelectItem>
+                        <SelectItem value="360">A cada 6 horas</SelectItem>
+                        <SelectItem value="1440">Uma vez por dia</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             )}
           </div>

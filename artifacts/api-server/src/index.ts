@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { hydrateCsvStoreFromDb } from "./lib/csv-store";
+import { startIntegrationScheduler } from "./lib/scheduler";
 
 const rawPort = process.env["PORT"];
 
@@ -27,4 +28,5 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+  startIntegrationScheduler();
 });

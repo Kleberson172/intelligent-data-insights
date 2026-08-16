@@ -16,6 +16,10 @@ interface DatasetInfo {
 const store = new Map<string, DatasetInfo>();
 const GLOBAL_KEY = "global";
 
+function parseNum(v: unknown): number {
+  return parseFloat(String(v).replace(/,/g, "."));
+}
+
 function detectNumericColumns(headers: string[], records: DataRecord[]): string[] {
   return headers.filter(h =>
     records.slice(0, 20).every(r => {
@@ -231,6 +235,124 @@ export function computeDashboardFromData(): DashboardMetrics | null {
     monthlySeries,
     byCategory,
   };
+}
+
+export interface CategoryBreakdown {
+  column: string;
+  valueColumn: string;
+  top: { value: string; total: number; count: number }[];
+}
+
+// Escolhe a coluna numérica "principal" a somar (ex: vendas/receita), com
+// o mesmo critério já usado no dashboard, para manter consistência.
+function pickValueColumn(numericCols: string[]): string | undefined {
+  return numericCols.find(c => /venda|valor|total|receita|revenue|preco/i.test(c)) ?? numericCols[0];
+}
+
+// Colunas "categóricas" válidas para agrupar: não são numéricas, não são a
+// coluna de data, e têm um número razoável de valores distintos (nem uma
+// constante, nem algo tipo um ID único por linha, que não serve para agrupar).
+function detectGroupableColumns(headers: string[], records: DataRecord[], numericCols: string[]): string[] {
+  const dateCol = detectDateColumn(headers);
+  return headers.filter(h => {
+    if (h === dateCol || numericCols.includes(h)) return false;
+    const uniqueCount = new Set(records.map(r => r[h] ?? "")).size;
+    return uniqueCount >= 2 && uniqueCount <= 30;
+  });
+}
+
+// Para CADA coluna categórica (ex: província, produto, funcionário), soma o
+// valor principal por cada valor distinto — sobre TODOS os registos, não
+// apenas uma amostra. Isto permite ao agente responder com precisão a
+// perguntas do tipo "qual X teve mais Y", sem adivinhar.
+export function computeCategoryBreakdowns(limit = 10): CategoryBreakdown[] {
+  const data = getCsvData();
+  if (!data) return [];
+
+  const { headers, records } = data;
+  const numericCols = detectNumericColumns(headers, records);
+  const valueCol = pickValueColumn(numericCols);
+  if (!valueCol) return [];
+
+  const groupableCols = detectGroupableColumns(headers, records, numericCols);
+
+  return groupableCols.map((col): CategoryBreakdown => {
+    const groups = new Map<string, { total: number; count: number }>();
+    for (const r of records) {
+      const key = r[col] || "(vazio)";
+      const val = parseNum(r[valueCol]) || 0;
+      const g = groups.get(key) ?? { total: 0, count: 0 };
+      g.total += val;
+      g.count += 1;
+      groups.set(key, g);
+    }
+    const top = Array.from(groups.entries())
+      .map(([value, g]) => ({ value, total: g.total, count: g.count }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, limit);
+    return { column: col, valueColumn: valueCol, top };
+  });
+}
+
+export interface CrossBreakdown {
+  columnA: string;
+  columnB: string;
+  valueColumn: string;
+  groups: { a: string; top: { b: string; total: number }[] }[];
+}
+
+// Cruza pares de colunas categóricas (ex: província × funcionário), para
+// perguntas com dois filtros ao mesmo tempo ("qual funcionário vendeu mais
+// EM Luanda"). Limitado a pares com poucas combinações possíveis, para não
+// gerar um resumo gigante — datasets de negócio típicos (poucas categorias)
+// cabem bem nesta limitação.
+export function computeCrossBreakdowns(maxPairs = 3, topPerGroup = 5): CrossBreakdown[] {
+  const data = getCsvData();
+  if (!data) return [];
+
+  const { headers, records } = data;
+  const numericCols = detectNumericColumns(headers, records);
+  const valueCol = pickValueColumn(numericCols);
+  if (!valueCol) return [];
+
+  const groupableCols = detectGroupableColumns(headers, records, numericCols);
+  if (groupableCols.length < 2) return [];
+
+  const uniqueCounts = new Map(groupableCols.map(c => [c, new Set(records.map(r => r[c] ?? "")).size]));
+
+  const pairs: [string, string][] = [];
+  for (let i = 0; i < groupableCols.length; i++) {
+    for (let j = i + 1; j < groupableCols.length; j++) {
+      const a = groupableCols[i];
+      const b = groupableCols[j];
+      const combos = (uniqueCounts.get(a) ?? 0) * (uniqueCounts.get(b) ?? 0);
+      if (combos > 0 && combos <= 200) pairs.push([a, b]);
+    }
+  }
+  // Prioriza os pares com menos combinações (resumos mais legíveis).
+  pairs.sort(([a1, b1], [a2, b2]) =>
+    (uniqueCounts.get(a1)! * uniqueCounts.get(b1)!) - (uniqueCounts.get(a2)! * uniqueCounts.get(b2)!)
+  );
+
+  return pairs.slice(0, maxPairs).map(([columnA, columnB]): CrossBreakdown => {
+    const groups = new Map<string, Map<string, number>>();
+    for (const r of records) {
+      const a = r[columnA] || "(vazio)";
+      const b = r[columnB] || "(vazio)";
+      const val = parseNum(r[valueCol]) || 0;
+      const inner = groups.get(a) ?? new Map<string, number>();
+      inner.set(b, (inner.get(b) ?? 0) + val);
+      groups.set(a, inner);
+    }
+    const result = Array.from(groups.entries()).map(([a, inner]) => ({
+      a,
+      top: Array.from(inner.entries())
+        .map(([b, total]) => ({ b, total }))
+        .sort((x, y) => y.total - x.total)
+        .slice(0, topPerGroup),
+    }));
+    return { columnA, columnB, valueColumn: valueCol, groups: result };
+  });
 }
 
 export interface TopProduct {

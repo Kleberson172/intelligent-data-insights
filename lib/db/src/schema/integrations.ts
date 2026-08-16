@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, boolean, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -17,6 +17,10 @@ export const integrationsTable = pgTable("integrations", {
   // devolver linhas que representem os dados de negócio a analisar
   // (ex: "SELECT * FROM vendas LIMIT 5000").
   query: text("query"),
+  // Atualização automática: se ativa, o servidor importa os dados desta
+  // conexão sozinho, de X em X minutos, sem precisar de clique manual.
+  autoRefreshEnabled: boolean("auto_refresh_enabled").notNull().default(false),
+  refreshIntervalMinutes: integer("refresh_interval_minutes"),
   isActive: boolean("is_active").notNull().default(false),
   lastTestedAt: timestamp("last_tested_at"),
   lastImportedAt: timestamp("last_imported_at"),
