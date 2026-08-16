@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { ArrowUpRight, ArrowDownRight, DollarSign, ShoppingBag, Users, AlertTriangle, TrendingUp, TrendingDown, Package } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, DollarSign, ShoppingBag, Users, AlertTriangle, TrendingUp, TrendingDown, Package, FileSpreadsheet, FileText } from "lucide-react";
 import { AppLayout } from "@/components/layout";
 import { AIChatZone } from "@/components/ai-chat";
 import {
@@ -98,6 +98,25 @@ export default function Dashboard() {
         {!summaryQuery.isLoading && !isUsingRealData && (
           <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-2.5 text-xs text-amber-300">
             A mostrar dados de demonstração. Carrega um ficheiro CSV em "Integrações" para ver os teus dados reais.
+          </div>
+        )}
+
+        {isUsingRealData && (
+          <div className="flex justify-end gap-2">
+            <a
+              href="/api/reports/excel"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
+              download
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" /> Exportar Excel
+            </a>
+            <a
+              href="/api/reports/pdf"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
+              download
+            >
+              <FileText className="w-3.5 h-3.5" /> Exportar PDF
+            </a>
           </div>
         )}
 

@@ -7,6 +7,7 @@ import predictionsRouter from "./predictions";
 import anomaliesRouter from "./anomalies";
 import dataRouter from "./data";
 import integrationsRouter from "./integrations";
+import reportsRouter from "./reports";
 import adminRouter from "./admin";
 
 const router: IRouter = Router();
@@ -19,6 +20,7 @@ router.use(predictionsRouter);
 router.use(anomaliesRouter);
 router.use(dataRouter);
 router.use(integrationsRouter);
+router.use(reportsRouter);
 router.use(adminRouter);
 
 export default router;
