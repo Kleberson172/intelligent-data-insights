@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard, AlertTriangle, TrendingUp, Plug,
-  Settings, LogOut, Bell, Search, ShieldCheck, UserCog
+  Settings, LogOut, Bell, Search, ShieldCheck, UserCog, Menu, X
 } from "lucide-react";
 import { useAuth } from "@workspace/replit-auth-web";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -27,6 +28,7 @@ export function AppLayout({ children, title = "Dashboard", showSearch = true }: 
 }) {
   const [location] = useLocation();
   const { user, logout } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const role = user?.role ?? "Analista";
   const roleConfig = getRoleConfig(role);
@@ -45,10 +47,22 @@ export function AppLayout({ children, title = "Dashboard", showSearch = true }: 
 
   return (
     <div className="flex min-h-screen app-bg dark">
-      {/* Sidebar */}
-      <aside className="w-[185px] flex-shrink-0 fixed left-0 top-0 h-screen glass-sidebar flex flex-col z-50">
+      {/* Fundo escurecido atrás do menu, em ecrãs pequenos, quando aberto */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 z-40 md:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar — fixa e sempre visível em ecrãs médios+; menu deslizante em ecrãs pequenos */}
+      <aside
+        className={`w-[220px] md:w-[185px] flex-shrink-0 fixed left-0 top-0 h-screen glass-sidebar flex flex-col z-50 transition-transform duration-200 ${
+          mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        }`}
+      >
         {/* Logo */}
-        <div className="px-5 pt-7 pb-5">
+        <div className="px-5 pt-7 pb-5 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <img src="/logo-eleven.png" alt="ELEVEN" className="w-9 h-9 object-contain drop-shadow-[0_0_8px_rgba(56,189,248,0.6)]" />
             <div>
@@ -56,6 +70,12 @@ export function AppLayout({ children, title = "Dashboard", showSearch = true }: 
               <div className="text-[9px] text-cyan-400 tracking-[0.25em] uppercase mt-0.5">Technology</div>
             </div>
           </div>
+          <button
+            onClick={() => setMobileMenuOpen(false)}
+            className="md:hidden w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5"
+          >
+            <X size={16} />
+          </button>
         </div>
 
         {/* Role badge */}
@@ -79,6 +99,7 @@ export function AppLayout({ children, title = "Dashboard", showSearch = true }: 
             return (
               <Link key={item.href} href={item.href}>
                 <div
+                  onClick={() => setMobileMenuOpen(false)}
                   className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${
                     isActive
                       ? "nav-active text-cyan-300"
@@ -121,13 +142,19 @@ export function AppLayout({ children, title = "Dashboard", showSearch = true }: 
       </aside>
 
       {/* Main */}
-      <div className="flex-1 ml-[185px] flex flex-col min-h-screen">
+      <div className="flex-1 md:ml-[185px] flex flex-col min-h-screen w-full min-w-0">
         {/* Header */}
-        <header className="sticky top-0 z-40 h-14 flex items-center px-6 gap-4 border-b border-white/5 bg-[#080b14]/80 backdrop-blur-xl">
-          <h1 className="text-white font-semibold text-base flex-shrink-0">{title}</h1>
+        <header className="sticky top-0 z-30 h-14 flex items-center px-3 sm:px-6 gap-2 sm:gap-4 border-b border-white/5 bg-[#080b14]/80 backdrop-blur-xl">
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className="md:hidden w-8 h-8 rounded-xl bg-white/5 border border-white/8 flex items-center justify-center text-gray-300 hover:text-white transition-colors flex-shrink-0"
+          >
+            <Menu size={16} />
+          </button>
+          <h1 className="text-white font-semibold text-base flex-shrink-0 truncate">{title}</h1>
           <div className="flex-1" />
           {showSearch && (
-            <div className="flex items-center gap-2 bg-white/5 border border-white/8 rounded-xl px-3 py-1.5 w-48">
+            <div className="hidden sm:flex items-center gap-2 bg-white/5 border border-white/8 rounded-xl px-3 py-1.5 w-40 md:w-48">
               <Search size={13} className="text-gray-500 flex-shrink-0" />
               <input
                 type="text"
@@ -136,11 +163,11 @@ export function AppLayout({ children, title = "Dashboard", showSearch = true }: 
               />
             </div>
           )}
-          <button className="w-8 h-8 rounded-xl bg-white/5 border border-white/8 flex items-center justify-center text-gray-400 hover:text-white transition-colors relative">
+          <button className="w-8 h-8 rounded-xl bg-white/5 border border-white/8 flex items-center justify-center text-gray-400 hover:text-white transition-colors relative flex-shrink-0">
             <Bell size={14} />
             <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-cyan-400 rounded-full" />
           </button>
-          <div className="flex items-center gap-2 bg-white/5 border border-white/8 rounded-xl px-2.5 py-1.5 cursor-pointer hover:bg-white/10 transition-colors">
+          <div className="flex items-center gap-2 bg-white/5 border border-white/8 rounded-xl px-2.5 py-1.5 cursor-pointer hover:bg-white/10 transition-colors flex-shrink-0">
             <Avatar className="h-6 w-6">
               {user?.profileImageUrl && <AvatarImage src={user.profileImageUrl} />}
               <AvatarFallback className={`text-white text-xs font-bold ${role === "Administrador" ? "bg-indigo-600" : "bg-cyan-700"}`}>
@@ -152,7 +179,7 @@ export function AppLayout({ children, title = "Dashboard", showSearch = true }: 
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-5 overflow-x-hidden">
+        <main className="flex-1 p-3 sm:p-5 overflow-x-hidden min-w-0">
           {children}
         </main>
       </div>

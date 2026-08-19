@@ -303,14 +303,14 @@ export default function Integracoes() {
               </div>
             ) : dataset?.loaded ? (
               <div className="flex items-center justify-between gap-4 flex-wrap">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
                     <FileSpreadsheet className="w-5 h-5 text-emerald-400" />
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-foreground">{dataset.filename}</span>
-                      <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-400 bg-emerald-500/5">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="font-medium text-foreground truncate">{dataset.filename}</span>
+                      <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-400 bg-emerald-500/5 shrink-0">
                         Ativo
                       </Badge>
                     </div>
@@ -555,7 +555,7 @@ export default function Integracoes() {
 
       {/* Add Integration Dialog */}
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
-        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto bg-[#111827] border-white/10">
+        <DialogContent className="w-[calc(100%-2rem)] max-w-md max-h-[85vh] overflow-y-auto bg-[#111827] border-white/10">
           <DialogHeader>
             <DialogTitle>Nova Conexão</DialogTitle>
           </DialogHeader>

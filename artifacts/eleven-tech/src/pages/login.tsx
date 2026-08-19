@@ -1,15 +1,17 @@
 ﻿import { useState } from "react";
 import { useAuth } from "@workspace/replit-auth-web";
 import { motion } from "framer-motion";
-import { BarChart3, Zap, Shield, Globe, Loader2, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { BarChart3, Zap, Shield, Globe, Loader2, Mail, Lock, Eye, EyeOff, KeyRound } from "lucide-react";
 
 export default function Login() {
-  const { loginWithCredentials } = useAuth();
+  const { loginWithCredentials, verifyTwoFactor } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingToken, setPendingToken] = useState<string | null>(null);
+  const [code, setCode] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -17,9 +19,28 @@ export default function Login() {
     setError(null);
     setLoading(true);
     try {
-      await loginWithCredentials(email, password);
+      const result = await loginWithCredentials(email, password);
+      if (result.requires2FA) {
+        setPendingToken(result.pendingToken);
+        setLoading(false);
+      }
+      // Se não precisar de 2FA, o AuthProvider já atualizou o utilizador
+      // e o routing da app trata de navegar para o dashboard sozinho.
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao autenticar.");
+      setLoading(false);
+    }
+  }
+
+  async function handleVerifyCode(e: React.FormEvent) {
+    e.preventDefault();
+    if (loading || !pendingToken) return;
+    setError(null);
+    setLoading(true);
+    try {
+      await verifyTwoFactor(pendingToken, code);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Código inválido.");
       setLoading(false);
     }
   }
@@ -103,13 +124,69 @@ export default function Login() {
 
           {/* Header */}
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-white">Acesso à Plataforma</h2>
+            <h2 className="text-2xl font-bold text-white">
+              {pendingToken ? "Verificação em Duas Etapas" : "Acesso à Plataforma"}
+            </h2>
             <p className="text-gray-400 mt-1 text-sm">
-              Entre com o seu email e palavra-passe
+              {pendingToken
+                ? "Introduza o código de 6 dígitos da sua app de autenticação"
+                : "Entre com o seu email e palavra-passe"}
             </p>
           </div>
 
-          {/* Login form */}
+          {pendingToken ? (
+            <form onSubmit={handleVerifyCode} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1.5">Código de verificação</label>
+                <div className="relative">
+                  <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    required
+                    maxLength={6}
+                    autoFocus
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                    placeholder="000000"
+                    className="w-full bg-[#111827] border border-white/10 focus:border-cyan-500/50 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-gray-600 outline-none transition-colors tracking-[0.3em] text-center"
+                  />
+                </div>
+              </div>
+
+              {error && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm text-center">
+                  {error}
+                </div>
+              )}
+
+              <motion.button
+                type="submit"
+                disabled={loading || code.length !== 6}
+                whileHover={{ scale: loading ? 1 : 1.01 }}
+                whileTap={{ scale: loading ? 1 : 0.99 }}
+                className="w-full bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 disabled:opacity-60 disabled:cursor-wait text-white font-semibold text-sm rounded-xl py-3.5 transition-all shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    A verificar…
+                  </>
+                ) : (
+                  "Verificar"
+                )}
+              </motion.button>
+
+              <button
+                type="button"
+                onClick={() => { setPendingToken(null); setCode(""); setError(null); }}
+                className="w-full text-center text-xs text-gray-500 hover:text-gray-300 transition-colors"
+              >
+                ← Voltar ao login
+              </button>
+            </form>
+          ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1.5">Email</label>
@@ -174,6 +251,7 @@ export default function Login() {
               )}
             </motion.button>
           </form>
+          )}
 
           <p className="text-center text-xs text-gray-600 pt-2">
             ELEVEN Technology · Plataforma de Inteligência de Dados

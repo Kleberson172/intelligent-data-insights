@@ -301,9 +301,9 @@ export function AIChatZone({ onPulse, onMessagesChange }: { onPulse?: () => void
 
         <div className="flex items-center gap-2">
           {csvStatus.loaded ? (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-medium">
-              <CheckCircle2 className="w-3 h-3" />
-              {csvStatus.filename} · {csvStatus.rows?.toLocaleString("pt-PT")} linhas
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-medium max-w-[180px] sm:max-w-[240px]">
+              <CheckCircle2 className="w-3 h-3 flex-shrink-0" />
+              <span className="truncate">{csvStatus.filename} · {csvStatus.rows?.toLocaleString("pt-PT")} linhas</span>
             </div>
           ) : (
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-gray-500 text-[10px]">
