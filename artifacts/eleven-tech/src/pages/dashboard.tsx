@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { Link } from "wouter";
 import { ArrowUpRight, ArrowDownRight, DollarSign, ShoppingBag, Users, AlertTriangle, TrendingUp, TrendingDown, Package, FileSpreadsheet, FileText } from "lucide-react";
 import { AppLayout } from "@/components/layout";
 import { AIChatZone } from "@/components/ai-chat";
@@ -47,29 +48,34 @@ function useCountUp(target: number, duration = 1200) {
   return count;
 }
 
-function StatCard({ icon: Icon, label, value, change, positive = true, color, delay = 0 }: {
-  icon: React.ElementType; label: string; value: string; change: string; positive?: boolean; color: string; delay?: number;
+function StatCard({ icon: Icon, label, value, change, positive = true, color, delay = 0, href }: {
+  icon: React.ElementType; label: string; value: string; change: string; positive?: boolean; color: string; delay?: number; href?: string;
 }) {
-  return (
+  const card = (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.4 }}
-      className="glass-card rounded-2xl p-5"
+      className={`glass-card rounded-2xl p-5 min-w-0 ${href ? "cursor-pointer hover:bg-white/[0.04] transition-colors" : ""}`}
     >
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-gray-400 text-sm">{label}</span>
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${color}`}>
+      <div className="flex items-center justify-between mb-3 gap-2">
+        <span className="text-gray-400 text-sm truncate">{label}</span>
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${color}`}>
           <Icon size={16} />
         </div>
       </div>
-      <div className="text-2xl font-bold text-white mb-1">{value}</div>
+      <div className="text-xl sm:text-2xl font-bold text-white mb-1 break-words leading-tight">{value}</div>
       <div className={`flex items-center gap-1 text-xs ${positive ? "text-emerald-400" : "text-red-400"}`}>
         {positive ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
         <span>{change} vs. mês anterior</span>
       </div>
     </motion.div>
   );
+
+  if (href) {
+    return <Link href={href}>{card}</Link>;
+  }
+  return card;
 }
 
 const formatAOA = (v: number) => {
@@ -121,7 +127,7 @@ export default function Dashboard() {
         )}
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             icon={DollarSign}
             label="Receita Total"
@@ -157,6 +163,7 @@ export default function Dashboard() {
             positive={false}
             color="bg-amber-500/15 text-amber-400"
             delay={0.18}
+            href="/anomalias"
           />
         </div>
 

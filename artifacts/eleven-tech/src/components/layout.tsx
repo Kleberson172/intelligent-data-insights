@@ -167,15 +167,17 @@ export function AppLayout({ children, title = "Dashboard", showSearch = true }: 
             <Bell size={14} />
             <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-cyan-400 rounded-full" />
           </button>
-          <div className="flex items-center gap-2 bg-white/5 border border-white/8 rounded-xl px-2.5 py-1.5 cursor-pointer hover:bg-white/10 transition-colors flex-shrink-0">
-            <Avatar className="h-6 w-6">
-              {user?.profileImageUrl && <AvatarImage src={user.profileImageUrl} />}
-              <AvatarFallback className={`text-white text-xs font-bold ${role === "Administrador" ? "bg-indigo-600" : "bg-cyan-700"}`}>
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <span className="text-xs text-gray-300 font-medium hidden sm:block">{displayName}</span>
-          </div>
+          <Link href="/settings">
+            <div className="flex items-center gap-2 bg-white/5 border border-white/8 rounded-xl px-2.5 py-1.5 cursor-pointer hover:bg-white/10 transition-colors flex-shrink-0">
+              <Avatar className="h-6 w-6">
+                {user?.profileImageUrl && <AvatarImage src={user.profileImageUrl} />}
+                <AvatarFallback className={`text-white text-xs font-bold ${role === "Administrador" ? "bg-indigo-600" : "bg-cyan-700"}`}>
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-xs text-gray-300 font-medium hidden sm:block">{displayName}</span>
+            </div>
+          </Link>
         </header>
 
         {/* Page content */}
